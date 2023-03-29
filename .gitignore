@@ -39,8 +39,7 @@ vignettes/*.pdf
 .Renviron
 
 # Data files
-data/
-!data/.gitignore
+data/**
 
 # Any folder with .gitignore
 !.gitignore
