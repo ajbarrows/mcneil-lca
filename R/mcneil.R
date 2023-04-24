@@ -2,7 +2,7 @@
 source("./data/make_dataset.R")
 
 # Subset data into interim data sets, place in interim
-# source("./data/make_subsets.R")
+source("./data/make_subsets.R")
 
 ## Build features from subsets, place in processed
 source("./features/build_features.R")
