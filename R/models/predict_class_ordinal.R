@@ -126,7 +126,7 @@ nested_cv_enet <- function(train, n_outer_folds = 5, n_inner_folds = 5) {
     # evaluate model using eval data
     
     result <- augment(enet_fit, eval)
-    auc <- roc_auc(result, truth = class, estimate = .pred_yes, estimator = "binary")
+    auc <- roc_auc(result, truth = class, .pred_yes, estimator = "binary")
     
     # collect
     # test_metrics <- rbind(auc, f1)
@@ -147,7 +147,6 @@ nested_cv_enet <- function(train, n_outer_folds = 5, n_inner_folds = 5) {
 
 prepare_data <- function(train, test, site_included = TRUE, trt_included = TRUE) {
   
-  # fit preprocessing recipe to training data
   enet_recipe <-
     recipe(class ~ ., data = train) %>%
     step_rm(subject_id) %>%
@@ -242,7 +241,7 @@ sample_null_auc <- function(enet_model, true_auc, train, n_samples = 100) {
     auc <-
       roc_auc(result,
               truth = class,
-              estimate = .pred_yes,
+              .pred_yes,
               estimator = "binary")
     null_aucs <- append(null_aucs, auc$.estimate)
   }
@@ -300,7 +299,7 @@ enet_fit <- function(data, penalty, mixture, permute_null = FALSE) {
   # evaluate model
   result <- predict(enet_fit, data)
   result <- augment(enet_fit, data)
-  auc <- roc_auc(result, truth = class, estimate = .pred_yes, estimator = "binary")
+  auc <- roc_auc(result, truth = class, .pred_yes, estimator = "binary")
   roc <- roc_curve(result, truth = class)
   test_metrics <- auc
   
@@ -366,8 +365,8 @@ enet_pipeline <- function(train, test, trt_included = TRUE) {
   
   # Obtain test prediction
   preds <- augment(best_model, test)
-  test_score <- roc_auc(preds, truth = class, estimate = .pred_yes, event_level = "second")
-  test_roc <- roc_curve(preds, truth = class, estimate = .pred_yes, event_level = "second")
+  test_score <- roc_auc(preds, truth = class, .pred_yes, event_level = "second")
+  test_roc <- roc_curve(preds, truth = class, .pred_yes, event_level = "second")
   # Obtain p-value from test prediction
   mod <-
     logistic_reg(penalty = best_penalty,
@@ -389,11 +388,6 @@ enet_pipeline <- function(train, test, trt_included = TRUE) {
   )
   
   
-  # retrain best model using OLS and non-zero predictors
-  # currently using all data
-  log_fit <- fit_ols(rbind(train, test), coefs)
-  
-  
   toc()
   
   list(
@@ -404,7 +398,6 @@ enet_pipeline <- function(train, test, trt_included = TRUE) {
     "test_preds" = preds,
     "null_aucs" = null_aucs,
     "mw_u" = mw_u,
-    "log_fit" = log_fit,
     "test_roc" = test_roc
   )
 }

@@ -385,29 +385,52 @@ rename_recode <- function(df) {
     mutate(visit = factor(visit, levels = visit_levels))
 }
 
-
-
 reorder_factors <- function(df) {
   trt_levels <- c("placebo", "active")
-  quit_levels <- c("NEVER", "ONCE", "2 TO 5 TIMES", "6 TO 10 TIMES", "MORE THAN 10 TIMES")
-  ts_levels <- c("never_quit", ">12 MONTHS", ">12-24 MONTHS", ">6-12 MONTHS", "0-6 MONTHS")
-  anx_dep_levels <- c("NOT AT ALL", "SOMEWHAT", "MODERATELY SO", "VERY MUCH SO", "EXTREMELY SO")
-  int_quit_levels <- c("NOT AT ALL", "A LITTLE", "SOMEWHAT ", "A LOT")
-  lst_cig_levels <- c("VERY UNPLEASANT", "SOMEWHAT UNPLEASANT", "NEUTRAL", "SOMEWHAT PLEASANT", "VERY PLEASANT")
+  quit_levels <-
+    c("NEVER",
+      "ONCE",
+      "2 TO 5 TIMES",
+      "6 TO 10 TIMES",
+      "MORE THAN 10 TIMES")
+  ts_levels <-
+    c("never_quit",
+      ">12 MONTHS",
+      ">12-24 MONTHS",
+      ">6-12 MONTHS",
+      "0-6 MONTHS")
+  anx_dep_levels <-
+    c("NOT AT ALL",
+      "SOMEWHAT",
+      "MODERATELY SO",
+      "VERY MUCH SO",
+      "EXTREMELY SO")
+  int_quit_levels <-
+    c("NOT AT ALL", "A LITTLE", "SOMEWHAT ", "A LOT")
+  lst_cig_levels <-
+    c(
+      "VERY UNPLEASANT",
+      "SOMEWHAT UNPLEASANT",
+      "NEUTRAL",
+      "SOMEWHAT PLEASANT",
+      "VERY PLEASANT"
+    )
   
-  longest_period <- c("1" = "<1 week", "2" = "1week-1month", "3" = ">1month-3months", "4" = ">3months")
-  # longest_levels <- c(">3months", ">")
+  longest_period <-
+    c(
+      "1" = "<1 week",
+      "2" = "1week-1month",
+      "3" = ">1month-3months",
+      "4" = ">3months"
+    )
   
   df %>%
     mutate(
-      longest_period_wo_smoking = recode_factor(
-        longest_period_wo_smoking,
-        !!!longest_period
-      ),
+      longest_period_wo_smoking = recode_factor(longest_period_wo_smoking,!!!longest_period),
       ts_last_quit_attempt = as.character(ts_last_quit_attempt),
       ts_last_quit_attempt = ifelse(
-        n_quit_attempts == "NEVER", 
-        "never_quit", 
+        n_quit_attempts == "NEVER",
+        "never_quit",
         ts_last_quit_attempt
       ),
       trt_recode = forcats::fct_relevel(trt_recode, trt_levels),
@@ -417,7 +440,7 @@ reorder_factors <- function(df) {
       depression = forcats::fct_relevel(depression, anx_dep_levels),
       int_to_quit = forcats::fct_relevel(int_to_quit, int_quit_levels),
       rsq_last_cig_exp = forcats::fct_relevel(rsq_last_cig_exp, lst_cig_levels)
-    ) 
+    )
   
 }
 
@@ -489,17 +512,6 @@ management_procedure <- function() {
   df
 }
 
-
-
 # main
 df <- management_procedure()
-
-
-
-# explore sites
-
-# df %>%
-#   distinct(subject_id, .keep_all = TRUE) %>%
-#   group_by(site) %>%
-#   count(TRTGRP)
 

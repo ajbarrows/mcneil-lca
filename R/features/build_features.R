@@ -70,33 +70,13 @@ rm_no_cpd <- function(df) {
 rm_subj_var <- function(df) {
   miss_count <- df %>%
     filter(week == "baseline") %>%
-    select(-c(cpw, cpm, quit)) %>%
+    select(-c(cpw, cpm)) %>%
     mutate(across(-subject_id, ~ifelse(is.na(.), 1, 0))) %>%
     tidyr::pivot_longer(-subject_id) %>%
     group_by(subject_id) %>%
     mutate(subj_int = cur_group_id()) %>% 
     summarize(n_miss = sum(value)) %>%
     ungroup()
-  
-  # miss_report <- miss_count %>% 
-  #   distinct(subject_id, .keep_all = TRUE) %>%
-  #   count(n_miss) %>%
-  #   mutate(
-  #     cumsum = cumsum(n),
-  #     prp_remain = cumsum / nrow(df %>% distinct(subject_id)))
-  # 
-  # ggplot(miss_report, aes(x = rev(n_miss), y = prp_remain)) +
-  #   geom_line()
-  # 
-  # 
-  # ggplot(miss_count,
-  #        aes(
-  #          x = reorder(subj_int, n_miss), 
-  #          y = as.factor(name), 
-  #          fill = as.factor(n_miss))) +
-  #   geom_tile() +
-  #   theme(axis.text.x = element_blank())
-  
 
   rm_subj <- miss_count %>% filter(n_miss >= 7) %>% distinct(subject_id)
 
@@ -141,22 +121,24 @@ subset_bl <- function(df, traj) {
   
   df %>%
     filter(visit == "baseline") %>%
-    select(-c(visit_date, visit, cpw, cpm, quit)) %>%
+    select(-c(visit_date, visit, cpw, cpm)) %>%
     left_join(w26, by = "subject_id")
 }
 
 subset_quit <- function(df, df_bl) {
   df_quitvars <- df %>%
     filter(visit == "month 12") %>%
-    mutate(quit = NA) %>%
+    # mutate(quit = NA) %>%
     make_avg_cpd() %>%
     select(
       subject_id,
       "co_1year" = co,
-      "avg_cpd_1year" = avg_cpd
+      "avg_cpd_1year" = avg_cpd,
+      quit
     )
   
   df_bl %>%
+    select(-quit) %>%
     left_join(df_quitvars, by = "subject_id")
 }
 
@@ -217,7 +199,7 @@ features <- function(df, nme) {
   df_imputed <- df_lowmiss_bl %>% 
     impute() %>% 
     make_avg_cpd() %>%
-    select(-c(cpd, cpw, cpm, quit))
+    select(-c(cpd, cpw, cpm))
 
   df_nomiss <- df_imputed %>% tidyr::drop_na()
   
