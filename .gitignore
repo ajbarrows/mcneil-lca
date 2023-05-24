@@ -45,9 +45,11 @@ data/**
 
 # Project files
 models/**
+!models/**/
 !models/**/.gitignore
 
 reports/**
+!reports/**/
 !reports/**/.gitignore
 
 
