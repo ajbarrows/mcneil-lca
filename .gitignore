@@ -42,8 +42,6 @@ vignettes/*.pdf
 # Data files
 data/**
 
-# Any folder with .gitignore
-!.gitignore
 
 # Project files
 models/**
@@ -52,3 +50,6 @@ reports/**
 
 #MacOS
 .DS_Store
+
+# Any folder with .gitignore
+!.gitignore
