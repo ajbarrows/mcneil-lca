@@ -47,4 +47,3 @@ data/**
 
 #MacOS
 .DS_Store
-packrat/lib*/
