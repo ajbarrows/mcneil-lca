@@ -33,7 +33,7 @@ split_df <- function(df_joined) {
   
   # select_vars
   df_joined <- df_joined %>%
-    select(-c(co_1year, avg_cpd_1year))
+    select(-c(co_1year, avg_cpd_1year, quit))
   
   # make one-hot encodings for class
   df_joined <- df_joined %>% mutate(class = as.factor(class))

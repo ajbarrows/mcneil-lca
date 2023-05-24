@@ -3,8 +3,7 @@ library(ggplot2)
 
 source("visualization/visualize.R")
 
-# load("../models/quit_predict_imputedord.rda")
-load("../models/quit_predict_11ppm.rda")
+load("../models/quit_predict_logistic.rda")
 theme_set(theme_classic())
 
 fig_path <- '../reports/figures/ord/'
