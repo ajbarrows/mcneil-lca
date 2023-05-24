@@ -45,7 +45,10 @@ data/**
 
 # Project files
 models/**
+!models/**/.gitignore
+
 reports/**
+!reports/**/.gitignore
 
 
 #MacOS
