@@ -49,11 +49,16 @@ enet_results <- function(fits, plot_loc, prefix) {
   
   plot_coef_byclass(c23, threshold = 0, facet = FALSE)
   ggsave(paste0(plot_loc,  prefix, "c23.png"))
+  # 
+  # contrap <- fits$contrap_fit$coef
+  # contrap$class <- NA
+  # contrap$class[contrap$estimate < 0] <- "class_1_placebo"
+  # contrap$class[contrap$estimate >=0] <- "class_23_active"
   
-  contrap <- fits$contrap_fit$coef
-  contrap$class <- NA
-  contrap$class[contrap$estimate < 0] <- "class_1_placebo"
-  contrap$class[contrap$estimate >=0] <- "class_23_active"
+  nonrt <- fits$nonrt_fit$coef  
+  nonrt$class <- NA
+  nonrt$class[nonrt$estimate < 0] <- "not_class_1"
+  nonrt$class[nonrt$estimate >= 0] <- "class_1"
   
   main_table <- main_plt %>% select(-penalty)
   
@@ -77,10 +82,11 @@ enet_results <- function(fits, plot_loc, prefix) {
   c12$contr <- "c12"
   c13$contr <- "c13"
   c23$contr <- "c23"
-  contrap$contr <- "c1placebo_c23active"
+  # contrap$contr <- "c1placebo_c23active"
+  nonrt$contr <- "notc1_v_c1"
 
   
-  contr_table <- rbind(c12, c13, c23, contrap) %>%
+  contr_table <- rbind(c12, c13, c23, nonrt) %>%
     select(-c(penalty, class)) %>%
     tidyr::pivot_wider(
       names_from = "contr",
@@ -118,9 +124,10 @@ for (f in 1:length(imputed_fits)) {
   cv_auc_se <- imputed_fits[[f]]$cv$cv_metrics$std_err[2]
   test_auc <- imputed_fits[[f]]$test_score$.estimate
   null_auc_mean <- mean(imputed_fits[[f]]$null_aucs)
-  auc_pval <- imputed_fits[[f]]$auc_pval
+  # mw_u_u <- imputed_fits[[f]]$mw_u$u
+  mw_u_p <- imputed_fits[[f]]$mw_u$p
   
-  tmp <- data.frame(nme, cv_auc_mean, cv_auc_se, test_auc, null_auc_mean, auc_pval)
+  tmp <- data.frame(nme, cv_auc_mean, cv_auc_se, test_auc, null_auc_mean, mw_u_p)
   metrics <- rbind(metrics, tmp)
   
   # ols coefficients
@@ -136,7 +143,8 @@ for (f in 1:length(imputed_fits)) {
 }
 
 
-gather_cv_coef <- function(imputed_fits, site = NULL, use_ref = TRUE, use_site = FALSE) {
+gather_cv_coef <- function(imputed_fits, site = NULL, use_ref = TRUE, 
+                           use_site = FALSE, exponentiate = TRUE) {
   
   # mapping <- read.csv(
   #   "../data/feature_mapping.csv",
@@ -174,7 +182,12 @@ gather_cv_coef <- function(imputed_fits, site = NULL, use_ref = TRUE, use_site =
     }
   }
   
-  levels <- c("Class 1 vs. All", "Class 2 vs. All", "Class 3 vs. All", "C1 Placebo vs.\nC2 & C3 Active")
+  if (exponentiate) {
+    cv_coefs <- cv_coefs %>%
+      mutate(estimate = exp(estimate))
+  }
+  
+  levels <- c("Class 1 vs. All", "Class 2 vs. All", "Class 3 vs. All", "Class 1 vs. All\n(Placebo NRT Only)")
   
   cv_coefs_long <- cv_coefs %>%
     filter(!model %in% c("c12_fit", "c13_fit", "c23_fit")) %>%
@@ -185,7 +198,7 @@ gather_cv_coef <- function(imputed_fits, site = NULL, use_ref = TRUE, use_site =
         model == "c1_fit" ~ "Class 1 vs. All",
         model == "c2_fit" ~ "Class 2 vs. All",
         model == "c3_fit" ~ "Class 3 vs. All",
-        model == "contrap_fit" ~ "C1 Placebo vs.\nC2 & C3 Active"
+        model == "nonrt_fit" ~ "Class 1 vs. All\n(Placebo NRT Only)"
         # model == "c12_fit" ~ "Class 1 vs. Class 2"
       ),
       model = factor(model, levels = levels)
@@ -231,11 +244,10 @@ cv_coef <- gather_cv_coef(imputed_fits, use_ref = FALSE)
 
 
 feature_imp(cv_coef$cv_coefs_long, use_ref = FALSE)
-# ggsave("../reports/figures/ord/explore/predict_class_features_contrast.png", dpi = 600)
-ggsave("../reports/figures/ord/predict_class_features.png", dpi = 600, height = 10)
+ggsave("../reports/figures/ord/predict_class_features.png", dpi = 600)
 
 
-png("../reports/figures/ord/predict_class_rocs.png", height = 2000, width = 2000, res = 300)
+svg("../reports/figures/ord/predict_class_rocs.svg")
 roc_plot_class(rocs)
 dev.off()
 
@@ -244,112 +256,5 @@ dev.off()
 write.csv(cv_coef$cv_coefs, "../reports/tables/ord/class_predic_coef.csv")
 
 
-
-
 write.csv(metrics, "../reports/tables/ord/class_predict_perf.csv", row.names = FALSE)
 
-# write.csv(coefs, "../reports/tables/class_predict_ols_coefs.csv", row.names = FALSE)
-
-
-# bysite
-
-# sites <- c("aus", "den", "ger", "swi", "usa")
-# 
-# 
-# coefs <- data.frame()
-# 
-# 
-# for (s in sites) {
-#   load(paste0("../models/predict_class_", s, ".rda"))
-# }
-# 
-# 
-# collect_metrics <- function(m, site) {
-#   metrics <- data.frame()
-#   rocs <- data.frame()
-#   for (f in 1:length(m)) {
-#     # enet metrics
-#     nme <- names(m[f])
-#     cv_auc_mean <- m[[f]]$cv$cv_metrics$mean[2]
-#     cv_auc_se <- m[[f]]$cv$cv_metrics$std_err[2]
-#     test_auc <- m[[f]]$test_score$.estimate
-#     null_auc_mean <- mean(m[[f]]$null_aucs)
-#     auc_pval <- m[[f]]$auc_pval
-# 
-#     tmp <- data.frame(nme, cv_auc_mean, cv_auc_se, test_auc, null_auc_mean, auc_pval)
-#     tmp$site <- site
-#     metrics <- rbind(metrics, tmp)
-# 
-#     roc_tmp <- m[[f]]$test_roc
-#     roc_tmp$model <- nme
-#     roc_tmp$site <- site
-#     rocs <- rbind(rocs, roc_tmp)
-#   }
-# 
-#   list(metrics, rocs)
-# }
-# 
-# aus_metrics <- collect_metrics(aus, "aus")
-# den_metrics <- collect_metrics(den, "den")
-# ger_metrics <- collect_metrics(ger, "ger")
-# swi_metrics <- collect_metrics(swi, "swi")
-# usa_metrics <- collect_metrics(usa, "usa")
-# 
-# site_metrics <- rbind(aus_metrics[[1]], den_metrics[[1]], ger_metrics[[1]], swi_metrics[[1]], usa_metrics[[1]])
-# site_rocs <- rbind(aus_metrics[[2]], den_metrics[[2]], ger_metrics[[2]], swi_metrics[[2]], usa_metrics[[2]])
-# 
-# site_metrics %>%
-#   filter(nme %in% c("c1_fit", "c2_fit", "c3_fit")) %>%
-#   ggplot(aes(x = site, y = cv_auc_mean, fill = nme)) +
-#   geom_col(position = "dodge") +
-#   geom_errorbar(aes(
-#     ymin = cv_auc_mean - cv_auc_se,
-#     ymax = cv_auc_mean + cv_auc_se
-#   ),
-#   position = position_dodge()) +
-#   labs(
-#     fill = "model",
-#     y = "Average CV AUC"
-#   )
-# ggsave("../reports/figures/ord/explore/site_metrics.png")
-# 
-# site_rocs %>%
-#   filter(model %in% c("c1_fit", "c2_fit", "c3_fit")) %>%
-#   ggplot(aes(x = 1-specificity, y = sensitivity, color = model)) +
-#   geom_path() +
-#   geom_abline(linetype = "dotted") +
-#   coord_equal() +
-#   theme_bw(base_size = 15) +
-#   facet_wrap(~site)
-# ggsave("../reports/figures/ord/explore/site_roc.png")
-# 
-# 
-# 
-# aus_coef <- gather_cv_coef(aus, site = "aus", use_ref = FALSE, use_site = TRUE)
-# den_coef <- gather_cv_coef(den, site = "den", use_ref = FALSE, use_site = TRUE)
-# ger_coef <- gather_cv_coef(ger, site = "ger", use_ref = FALSE, use_site = TRUE)
-# swi_coef <- gather_cv_coef(swi, site = "swi", use_ref = FALSE, use_site = TRUE)
-# usa_coef <- gather_cv_coef(usa, site = "usa", use_ref = FALSE, use_site = TRUE)
-# 
-# site_coefs <- rbind(
-#   aus_coef$cv_coefs_long,
-#   den_coef$cv_coefs_long,
-#   ger_coef$cv_coefs_long,
-#   swi_coef$cv_coefs_long,
-#   usa_coef$cv_coefs_long
-# )
-# 
-# 
-# feature_imp_bysite(site_coefs)
-# ggsave("../reports/figures/ord/explore/site_features.png")
-# 
-# 
-# 
-# 
-# 
-# # 
-# 
-# 
-# 
-# 
-# 

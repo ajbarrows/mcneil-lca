@@ -262,7 +262,7 @@ plot_coef_byclass <- function(plt_df, threshold = 0, facet = TRUE, scales = "fix
       fill = class)) +
     geom_col() +
     scale_fill_manual(values = fill_values) +
-    theme_minimal(base_size = 14) +
+    theme_minimal() +
     geom_vline(aes(xintercept = 0), linetype = "dashed") +
     labs(
       x = "Beta",
@@ -293,10 +293,10 @@ compare_metrics <- function(metrics) {
   df_plt <- metrics %>%
     mutate(nme = stringr::str_replace_all(nme, rename_list)) %>%
     tidyr::pivot_longer(
-      c(cv_rsq_mean, test_rsq)
+      c(cv_roc_mean, test_auc)
     ) %>%
     mutate(
-      cv_rsq_se = ifelse(name == "test_rsq", NA, cv_rsq_se),
+      cv_roc_se = ifelse(name == "test_auc", NA, cv_roc_se),
       nme = factor(nme, levels = rename_list)
     )
   
@@ -304,16 +304,16 @@ compare_metrics <- function(metrics) {
   ggplot(df_plt, aes(x = nme, y = value, fill = name)) +
     geom_col(position = "dodge") +
     geom_errorbar(aes(
-      ymin = value - cv_rsq_se,
-      ymax = value + cv_rsq_se
+      ymin = value - cv_roc_se,
+      ymax = value + cv_roc_se
     ),
     position = position_dodge()) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     labs(
       x = "model",
-      y = bquote(italic(R^2)),
+      y = "ROC AUC",
       fill = "",
-      title = "Predicting CO Values at 1-year follow up"
+      title = "Predicting Smoking Cessation at 1-year follow up"
     )
   
 }
@@ -376,36 +376,41 @@ quit_coef <- function(full_fit) {
     )
 }
 
-count_quit <- function(full_fit) {
+count_quit <- function(full_fit, quit_threshold = 6) {
   
-  quit_thresh <- 11
+  # quit_thresh <- 11
   
   quit_df <- full_fit$test_preds %>%
-    select(co_1year, .pred) %>%
+    select(quit_verified, .pred_class) %>%
     mutate(
-      quit_true = ifelse(co_1year <= quit_thresh, "yes", "no"),
-      quit_pred = ifelse(.pred <= quit_thresh, "yes", "no"),
-      success = quit_true == quit_pred
+      quit_true = ifelse(quit_verified == 1, "yes", "no"),
+      # quit_pred = ifelse(.pred_class == "", "yes", "no"),
+      success = quit_true == .pred_class
     )
+  # 
+  quit_table <- quit_df %>%
+    group_by(quit_verified) %>%
+    count(success)
+  # 
+  # p <- ggplot(quit_df, aes(x = co_1year, y = .pred, color = success)) +
+  #   geom_point() +
+  #   geom_vline(aes(xintercept = quit_thresh), linetype = "dashed") +
+  #   geom_hline(aes(yintercept = quit_thresh), linetype = "dashed") +
+  #   labs(
+  #     x = "Actual 1-year CO (ppm)",
+  #     y = "Predicted 1-year CO (ppm)",
+  #     title  = "Predicting 1-Year CO Using Latent Class + Baseline Characteristics"
+  #   )
+  # 
+  # list(
+  #   "plot" = p,
+  #   "df" = quit_df
+  # )
   
-  p <- ggplot(quit_df, aes(x = co_1year, y = .pred, color = success)) +
-    geom_point() +
-    geom_vline(aes(xintercept = quit_thresh), linetype = "dashed") +
-    geom_hline(aes(yintercept = quit_thresh), linetype = "dashed") +
-    labs(
-      x = "Actual 1-year CO (ppm)",
-      y = "Predicted 1-year CO (ppm)",
-      title  = "Predicting 1-Year CO Using Latent Class + Baseline Characteristics"
-    )
-  
-  list(
-    "plot" = p,
-    "df" = quit_df
-  )
-  
+  quit_table
 }
 
-feature_imp <- function(cv_coefs_long, use_ref = TRUE) {
+feature_imp <- function(cv_coefs_long, use_ref = TRUE, dashline = 1) {
   fill_values <- c(
     "Class 1 vs. All" = "#F8766D", 
     "Class 2 vs. All" = "#00BA38", 
@@ -434,14 +439,14 @@ feature_imp <- function(cv_coefs_long, use_ref = TRUE) {
   }
   
   plt <- plt + 
-    geom_vline(aes(xintercept = 0), linetype = "dashed") +
+    geom_vline(aes(xintercept = dashline), linetype = "dashed") +
     ggh4x::facet_nested(
       feature ~ model, 
       scales = "free_y", 
       space = "free_y",
       switch = "y",
       drop = TRUE) +
-    theme_bw(base_size = 15) +
+    theme_bw(base_size = 22) +
     theme(
       strip.placement = "outside",
       strip.text.y.left = element_text(angle = 0)) +
@@ -528,25 +533,27 @@ roc_plot_class <- function(rocs) {
     lty = 1
   )
   
+  title("Predicting Latent Class Membership")
+  
 }
+# 
+roc_plot_quit <- function(roc1, roc2) {
 
-roc_plot_quit <- function(rocs) {
-  
-  full <- rocs %>% filter(nme == "full_fit")
-  bl <- rocs %>% filter(nme == "noclass_fit")
-  only <- rocs %>% filter(nme == "onlyclass_fit")
-  
+  # full <- rocs %>% filter(nme == "full_fit")
+  # bl <- rocs %>% filter(nme == "noclass_fit")
+  # only <- rocs %>% filter(nme == "onlyclass_fit")
+
   plot(
-    sort(full$fpr, na.last = TRUE), full$tpr, 
-    type = "S", 
+    1 - roc1$specificity, roc1$sensitivity,
+    type = "S",
     col = "red",
     xlab = "False Positive Rate",
     ylab = "True Positive Rate",
     asp = 1
   )
-  lines(sort(bl$fpr, na.last = TRUE), bl$tpr, type = "S", col = "blue")
+  lines(1 - roc2$specificity, roc2$sensitivity, type = "S", col = "blue")
   abline(coef = c(0, 1), lty = 2)
-  
+
   legend(
     "bottomright",
     legend = c(
@@ -556,8 +563,30 @@ roc_plot_quit <- function(rocs) {
     col = c("red", "blue"),
     lty = 1
   )
+  title("Predicting Smoking Cessation")
 }
 
+
+# compare_roc <- function(roc1, roc2) {
+#   # roc1 <- full_fit$test_roc
+#   # roc2 <- noclass_fit$test_roc
+#   
+#   roc1$model <- "Baseline Characteristics & Latent Class"
+#   roc2$model <- "Baseline Characteristics Alone"
+#   
+#   df <- rbind(roc1, roc2)
+#   
+#   ggplot(df, aes(x = 1 - specificity, y = sensitivity, color = model)) +
+#     geom_path() +
+#     geom_abline(linetype = 3) +
+#     coord_equal() +
+#     scale_color_brewer(palette = "Set1") +
+#     theme_classic(base_size = 15) +
+#     labs(
+#       color = "",
+#       x = "False Positive Rate",
+#       y = "True Positive Rate")
+# }
 
 
 

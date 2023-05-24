@@ -1,17 +1,20 @@
 library(tidymodels)
 library(tictoc)
+library(doParallel)
 
 source("visualization/visualize.R")
-# source("models/enetCV.R")
-# source("models/enet_cv.R")
+
 load("../data/processed/pred_imputedord.rda")
 load("../data/processed/pred_nomissord.rda")
 load("../data/predicted/lca3_predict.rda")
 
 set.seed(42)
-# 
-# doParallel::registerDoParallel()
-cores <- parallel::detectCores(logical = FALSE)
+
+# parallelization
+
+all_cores <- parallel::detectCores(logical = FALSE)
+cl <- makePSOCKcluster(all_cores)
+registerDoParallel(cl)
 
 # functions --- 
 
@@ -19,7 +22,7 @@ join_lca <- function(df_lca, df_bl) {
   as_tibble(df_lca) %>%
     distinct(subject_id, class) %>%
     right_join(df_bl, by = "subject_id") %>%
-    select(-visit_date)
+    select(-c(visit_date, week))
 }
 
 split_df <- function(df_joined) {
@@ -69,15 +72,15 @@ split_df <- function(df_joined) {
   class_map <- df_joined %>% select(subject_id, class, trt_recode)
   class_map <- as_tibble(model.matrix(~.-1, data = class_map))
   
-  # class 1 placebo vs class 2 trt
-  contrap <- class_map %>%
-    filter(
-      (class1 == 1 & trt_recodeactive == 0) |
-        (class2 == 1 & trt_recodeactive == 1) |
-        (class3 == 1 & trt_recodeactive == 1)
-    ) %>%
-    select(subject_id, class = class1) %>%
-    left_join(df_joined %>% select(-c(class, trt_recode)), by = "subject_id")
+  
+  # examine people who reduce w/o NRT vs. those who do not reduce w/o NRT.
+  # limit sample to placebo condition, use class1 as binary outcome
+  
+  nonrt <- class_map %>%
+    filter(trt_recodeactive == 0) %>%
+    select(subject_id, class = class1, trt_recodeactive) %>%
+    left_join(df_joined %>% select(-class), by = "subject_id")
+  
   
   list(
     "class1" = class1,
@@ -86,7 +89,7 @@ split_df <- function(df_joined) {
     "class12" = class12,
     "class13" = class13,
     "class23" = class23,
-    "contrap" = contrap
+    "nonrt" = nonrt
   )
   
 }
@@ -122,10 +125,8 @@ nested_cv_enet <- function(train, n_outer_folds = 5, n_inner_folds = 5) {
     
     # evaluate model using eval data
     
-    # result <- predict(enet_fit, eval)
     result <- augment(enet_fit, eval)
     auc <- roc_auc(result, truth = class, estimate = .pred_yes, estimator = "binary")
-    # f1 <- f_meas(result, truth = class, estimate = .pred_class)
     
     # collect
     # test_metrics <- rbind(auc, f1)
@@ -218,10 +219,14 @@ param_tune <- function(train, n_inner_folds = 5) {
 
 auc2p <- function(auc, n1, n2, auc2 = 0.5) {
   # From Nick Allgaier
-  w_sig = sqrt(n1*n2*(n1+n2+1)/12)
-  z=n1*n2*(auc-auc2)/w_sig
-  pval=1-pnorm(abs(z))
-  pval
+  w_sig = sqrt(n1 * n2 * (n1 + n2 + 1) / 12)
+  z = n1 * n2 * (auc - auc2) / w_sig
+  pval = 1 - pnorm(abs(z))
+  
+  return (list(
+    "z" = z,
+    "p" = pval
+  ))
 }
 
 sample_null_auc <- function(enet_model, true_auc, train, n_samples = 100) {
@@ -245,6 +250,31 @@ sample_null_auc <- function(enet_model, true_auc, train, n_samples = 100) {
   null_aucs
 }
 
+
+return_counts <- function(train_split, test_split) {
+  n_train_all <- nrow(train_split$class1)
+  n_test_all <- nrow(test_split$class1)
+  
+  n_train_nonrt <- nrow(train_split$nonrt)
+  n_test_nonrt <- nrow(test_split$nonrt)
+  
+  colnames <- c("model", "train", "test")
+  model <- c("all", "nonrt")
+  all <- c(n_train_all, n_test_all)
+  nonrt <- c(n_train_nonrt, n_test_nonrt)
+  
+  df <- data.frame(
+    model, all, nonrt
+  )
+  names(df) <- colnames
+  write.csv(
+    df, 
+    "../reports/tables/model_setup/class_predict_split.csv", 
+    row.names = FALSE
+  )
+  return (df)
+  
+}
 
 
 enet_fit <- function(data, penalty, mixture, permute_null = FALSE) {
@@ -283,7 +313,7 @@ enet_fit <- function(data, penalty, mixture, permute_null = FALSE) {
       n_samples = 100
     )
     
-    auc_pval <- auc2p(
+    mw_u <- auc2p(
       auc = auc$.estimate,
       n1 = data %>% filter(class == 1) %>% nrow(),
       n2 = data %>% filter(class == 0) %>% nrow(),
@@ -302,32 +332,10 @@ enet_fit <- function(data, penalty, mixture, permute_null = FALSE) {
     "predicted" = result,
     "full_fit" = enet_fit,
     "null_aucs" = null_aucs,
-    "auc_pval" = auc_pval,
+    "mw_u" = mw_u,
     "workflow" = enet_workflow
   )
 }
-
-
-fit_ols <- function(train, coefs) {
-  
-  # get nonzero coefficients 
-  features <- coefs %>% 
-    filter(term != "(Intercept)" & estimate != 0)
-  
-  data <- train %>% 
-    select(features$term, class)
-  
-  log_model <- logistic_reg()
-  
-  log_fit <- 
-    log_model %>%
-    fit(class ~ ., data = data)
-  # 
-  # tidy(log_fit, conf.int = TRUE, exponentiate = TRUE)
-  
-  return(log_fit)
-}
-
 
 enet_pipeline <- function(train, test, trt_included = TRUE) {
   # pipeline
@@ -373,7 +381,7 @@ enet_pipeline <- function(train, test, trt_included = TRUE) {
     n_samples = 100
   )
   
-  auc_pval <- auc2p(
+  mw_u <- auc2p(
     auc = test_score$.estimate,
     n1 = test %>% filter(class == "yes") %>% nrow(),
     n2 = test %>% filter(class == "no") %>% nrow(),
@@ -395,7 +403,7 @@ enet_pipeline <- function(train, test, trt_included = TRUE) {
     "test_score" = test_score,
     "test_preds" = preds,
     "null_aucs" = null_aucs,
-    "auc_pval" = auc_pval,
+    "mw_u" = mw_u,
     "log_fit" = log_fit,
     "test_roc" = test_roc
   )
@@ -410,7 +418,7 @@ fit_procedure <- function(train_splits, test_splits) {
   c13_fit <- enet_pipeline(train_splits$class13, test_splits$class13)
   c23_fit <- enet_pipeline(train_splits$class23, test_splits$class23)
   
-  contrap_fit <- enet_pipeline(train_splits$contrap, test_splits$contrap, trt_included = FALSE)
+  nonrt_fit <- enet_pipeline(train_splits$nonrt, test_splits$nonrt, trt_included = FALSE)
   
   list(
     "c1_fit" = c1_fit,
@@ -419,7 +427,7 @@ fit_procedure <- function(train_splits, test_splits) {
     "c12_fit" = c12_fit,
     "c13_fit" = c13_fit,
     "c23_fit" = c23_fit,
-    "contrap_fit" = contrap_fit
+    "nonrt_fit" = nonrt_fit
   )
 }
 
@@ -432,16 +440,18 @@ df_imputed_split <- initial_split(df_imputed, prop = 0.8)
 imputed_train <- training(df_imputed_split)
 imputed_test <- testing(df_imputed_split)
 
-df_nomiss <- join_lca(m3_class_df, pred_nomiss)
-df_nomiss_split <- initial_split(df_nomiss, prop = 0.8)
-nomiss_train <- training(df_nomiss_split)
-nomiss_test <- testing(df_nomiss_split)
+# df_nomiss <- join_lca(m3_class_df, pred_nomiss)
+# df_nomiss_split <- initial_split(df_nomiss, prop = 0.8)
+# nomiss_train <- training(df_nomiss_split)
+# nomiss_test <- testing(df_nomiss_split)
 
 
 # train
 
 imputed_train_split <- split_df(imputed_train)
 imputed_test_split <- split_df(imputed_test)
+
+return_counts(imputed_train_split, imputed_test_split)
 
 # usa
 imputed_train_usa <- split_df(imputed_train %>% filter(site == "usa") %>% select(-site))
@@ -484,6 +494,12 @@ save(imputed_fits, file = "../models/enet_imputed_ord.rda")
 # save(swi, file = "../models/predict_class_swi.rda")
 # save(den, file = "../models/predict_class_den.rda")
 # save(ger, file = "../models/predict_class_ger.rda")
+
+
+
+
+
+
 
 
 
