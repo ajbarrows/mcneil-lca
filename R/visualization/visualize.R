@@ -446,7 +446,8 @@ feature_imp <- function(cv_coefs_long, use_ref = TRUE, dashline = 1) {
       space = "free_y",
       switch = "y",
       drop = TRUE) +
-    theme_bw(base_size = 22) +
+    # theme_bw(base_size = 22) +
+    theme_bw() +
     theme(
       strip.placement = "outside",
       strip.text.y.left = element_text(angle = 0)) +

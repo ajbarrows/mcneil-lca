@@ -146,15 +146,6 @@ for (f in 1:length(imputed_fits)) {
 gather_cv_coef <- function(imputed_fits, site = NULL, use_ref = TRUE, 
                            use_site = FALSE, exponentiate = TRUE) {
   
-  # mapping <- read.csv(
-  #   "../data/feature_mapping.csv",
-  #   stringsAsFactors = FALSE
-  #   )
-  # 
-  # ref <- read.csv(
-  #   "../data/feature_mapping_reference.csv",
-  #   stringsAsFactors = FALSE
-  # )
   
   term_feature <- read.csv(
     "../data/term_feature_map.csv",
@@ -244,7 +235,8 @@ cv_coef <- gather_cv_coef(imputed_fits, use_ref = FALSE)
 
 
 feature_imp(cv_coef$cv_coefs_long, use_ref = FALSE)
-ggsave("../reports/figures/ord/predict_class_features.png", dpi = 600)
+ggsave("../reports/figures/ord/predict_class_features.png", width=10, units='in')
+write.csv(cv_coef$cv_coefs_long, '../data/model_output/class_coefs.csv', row.names = FALSE)
 
 
 svg("../reports/figures/ord/predict_class_rocs.svg")

@@ -175,9 +175,11 @@ cv_coef <- gather_cv_coef(quit_fit, use_ref = FALSE)
 #     sd_odds = exp(sd_est))
 
 
-feature_imp(cv_coef$cv_coefs_long %>% filter(!stringr::str_detect(model, "Within|Latent Class Alone"))) + 
+cv_coefs_long <- cv_coef$cv_coefs_long %>% filter(!stringr::str_detect(model, "Within|Latent Class Alone"))
+write.csv(cv_coefs_long, '../data/model_output/cessation_coefs.csv', row.names = FALSE)
+feature_imp(cv_coefs_long) + 
   scale_color_brewer(palette = "Set2")
-ggsave(paste0(fig_path, "predict_quit_features.png"), dpi = 600)
+ggsave(paste0(fig_path, "predict_quit_features.png"), width=10, units='in')
 
 # write.csv(cv_coefs, "../reports/tables/co_predict_coef.csv", row.names = FALSE)
 # select best model
