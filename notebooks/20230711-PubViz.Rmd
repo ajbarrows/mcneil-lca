@@ -27,16 +27,30 @@ df <- rbind(df, tmp)
 head(df)
 ```
 
+```{r}
+fill_values <- c(
+  "Class 1 vs. All" = "(A) Class 1 vs. All", 
+  "Class 2 vs. All" = "(B) Class 2 vs. All", 
+  "Class 3 vs. All" = "(C) Class 3 vs. All",
+  "Class 1 vs. All\n(Placebo NRT Only)" = "(D) Class 1 vs. All\n(Placebo NRT Only)",
+  "Baseline Characteristics\n Alone" = "(E) Baseline Characteristics\n Alone",
+  "Baseline Char. &\nLatent Class" = "(F) Baseline Char. &\nLatent Class"
+  
+)
+```
+
+
+
 ```{r fig.width=15}
 dashline <- 1
 use_ref <- TRUE
 
 fill_values <- c(
-  "Class 1 vs. All" = "#F8766D", 
-  "Class 2 vs. All" = "#00BA38", 
-  "Class 3 vs. All" = "#619CFF",
-  "Baseline Characteristics\n Alone" = "#C77CFF",
-  "Baseline Char. &\nLatent Class" = "#FC61D5"
+  "(A) Class 1 vs. All" = "#F8766D", 
+  "(B) Class 2 vs. All" = "#00BA38", 
+  "(C) Class 3 vs. All" = "#619CFF",
+  "(E) Baseline Characteristics\n Alone" = "#C77CFF",
+  "(F) Baseline Char. &\nLatent Class" = "#FC61D5"
   
 )
 
@@ -49,8 +63,11 @@ plt_df
 ```
 
 ```{r fig.width=15}
+DASHLINE = 1
+
 plt <- plt_df %>%
   ggplot(aes(y = level, x = mean_est, color = model, shape = model)) +
+  geom_vline(aes(xintercept = DASHLINE), linetype = 'dashed') +
   geom_pointrange(
     aes(xmin = mean_est - sd_est, xmax = mean_est + sd_est),
     show.legend = FALSE
@@ -72,7 +89,7 @@ plt + ggh4x::facet_nested(
       feature ~ analysis + model, 
       # nest_line = element_line(linetype = 2),
       nest_line = TRUE,
-      scales = "free", 
+      scales = "free_y", 
       space = "free_y",
       switch = "y",
       drop = TRUE) +
@@ -88,7 +105,7 @@ plt + ggh4x::facet_nested(
       color = ""
     ) 
 
-ggsave('../reports/figures/ord/feature_importance.svg')
+# ggsave('../reports/figures/ord/feature_importance.svg')
 ```
 
 
