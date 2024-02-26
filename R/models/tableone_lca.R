@@ -1,8 +1,9 @@
 library(dplyr)
 
 
-load("../data/interim/ordinal_data.rda")
+# load("../data/interim/ordinal_data.rda")
 
+load("../data/interim/compiled_data.rda")
 load("../data/predicted/lca3_predict.rda")
 load("../data/processed/pred_imputedord.rda")
 

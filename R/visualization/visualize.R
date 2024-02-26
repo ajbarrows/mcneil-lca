@@ -446,7 +446,6 @@ feature_imp <- function(cv_coefs_long, use_ref = TRUE, dashline = 1) {
       space = "free_y",
       switch = "y",
       drop = TRUE) +
-    # theme_bw(base_size = 22) +
     theme_bw() +
     theme(
       strip.placement = "outside",
@@ -540,9 +539,6 @@ roc_plot_class <- function(rocs) {
 # 
 roc_plot_quit <- function(roc1, roc2) {
 
-  # full <- rocs %>% filter(nme == "full_fit")
-  # bl <- rocs %>% filter(nme == "noclass_fit")
-  # only <- rocs %>% filter(nme == "onlyclass_fit")
 
   plot(
     1 - roc1$specificity, roc1$sensitivity,
@@ -567,27 +563,6 @@ roc_plot_quit <- function(roc1, roc2) {
   title("Predicting Smoking Cessation")
 }
 
-
-# compare_roc <- function(roc1, roc2) {
-#   # roc1 <- full_fit$test_roc
-#   # roc2 <- noclass_fit$test_roc
-#   
-#   roc1$model <- "Baseline Characteristics & Latent Class"
-#   roc2$model <- "Baseline Characteristics Alone"
-#   
-#   df <- rbind(roc1, roc2)
-#   
-#   ggplot(df, aes(x = 1 - specificity, y = sensitivity, color = model)) +
-#     geom_path() +
-#     geom_abline(linetype = 3) +
-#     coord_equal() +
-#     scale_color_brewer(palette = "Set1") +
-#     theme_classic(base_size = 15) +
-#     labs(
-#       color = "",
-#       x = "False Positive Rate",
-#       y = "True Positive Rate")
-# }
 
 
 

@@ -500,4 +500,4 @@ save(imputed_fits, file = "../models/enet_imputed_ord.rda")
 # save(nomiss_fits, file = "../models/enet_nomiss.rda")
 # 
 # train <- imputed_train_split$class1
-# test <- imputed_test_split$class1
+# test <- imputed_test_split$class
