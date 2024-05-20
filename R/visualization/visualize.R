@@ -113,12 +113,13 @@ plot_trajectories <- function(df_lca, class_probs, n_classes) {
     ) +
     geom_point() +
     geom_line(linewidth = 1) +
+    theme(legend.position = "top", plot.title = element_text(size=15))+
     geom_hline(aes(yintercept = no_change), linetype = "dashed") +
     annotate("text", x = 1, y = no_change + 5, label = "No Change") +
     labs(
       x = "Follow-Up Week",
       y = "Average Percent Change from Baseline CPD",
-      title = "Average Smoking Trajectories by Predicted Latent Class",
+      title = "Avg. Smoking Trajectories by Predicted Latent Class",
       color = "Class"
     )  +
     scale_color_manual(values = fill_values)

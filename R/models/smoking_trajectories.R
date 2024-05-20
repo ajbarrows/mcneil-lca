@@ -4,7 +4,7 @@ library(ggplot2)
 
 source("visualization/visualize.R")
 
-theme_set(theme_classic())
+theme_set(theme_classic(base_size = 15))
 set.seed(42)
 
 load("../data/processed/smoking_traj.rda")
@@ -140,7 +140,8 @@ for (m in cpd_lca) {
     
     # generate trajectory plots
     plot_traj <- plot_trajectories(df_lca, model_traj, n_classes = m$ng)
-    ggsave(plot = plot_traj$plot, file = paste0("../reports/figures/lca/", nme, ".png"), width = 7, height = 5)
+    # ggsave(plot = plot_traj$plot, file = paste0("../reports/figures/lca/", nme, ".png"), width = 7, height = 5, dpi='retina')
+    ggsave(plot = plot_traj$plot, file = paste0("../reports/figures/lca/", nme, ".png"), width = 7, height = 6, dpi='retina')
     
     # generate cpd plot
     plot_cpd_traj <- plot_cpd_trajectories(df_lca, model_traj, n_classes = m$ng)

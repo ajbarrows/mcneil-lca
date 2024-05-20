@@ -2,11 +2,6 @@ library(tidymodels)
 library(ggplot2)
 library(stringr)
 
-source("visualization/visualize.R")
-
-theme_set(theme_classic(base_size = 15))
-
-load("../models/enet_imputed_ord.rda")
 
 
 enet_results <- function(fits, plot_loc, prefix) {
@@ -109,39 +104,6 @@ enet_results <- function(fits, plot_loc, prefix) {
 }
 
 
-# imputed ----- 
-
-enet_results(imputed_fits, "../reports/figures/ord/", "enet_imputed")
-
-metrics <- data.frame()
-coefs <- data.frame()
-rocs <- data.frame()
-options(scipen = 999)
-for (f in 1:length(imputed_fits)) {
-  # enet metrics
-  nme <- names(imputed_fits[f])
-  cv_auc_mean <- imputed_fits[[f]]$cv$cv_metrics$mean[2]
-  cv_auc_se <- imputed_fits[[f]]$cv$cv_metrics$std_err[2]
-  test_auc <- imputed_fits[[f]]$test_score$.estimate
-  null_auc_mean <- mean(imputed_fits[[f]]$null_aucs)
-  # mw_u_u <- imputed_fits[[f]]$mw_u$u
-  mw_u_p <- imputed_fits[[f]]$mw_u$p
-  
-  tmp <- data.frame(nme, cv_auc_mean, cv_auc_se, test_auc, null_auc_mean, mw_u_p)
-  metrics <- rbind(metrics, tmp)
-  
-  # ols coefficients
-  # 
-  # coefs_df <- tidy(imputed_fits[[f]]$log_fit, exponentiate = TRUE, conf.int = TRUE)
-  # coefs_df$model <- nme
-  # 
-  # coefs <- rbind(coefs, coefs_df)
-  roc_tmp <- imputed_fits[[f]]$test_roc
-  roc_tmp$model <- nme
-  rocs <- rbind(rocs, roc_tmp)
-  
-}
-
 
 gather_cv_coef <- function(imputed_fits, site = NULL, use_ref = TRUE, 
                            use_site = FALSE, exponentiate = TRUE) {
@@ -227,26 +189,72 @@ gather_cv_coef <- function(imputed_fits, site = NULL, use_ref = TRUE,
 }
 
 
+if (sys.nframe() == 0) {
+  
+  # imputed ----- 
+  
+  enet_results(imputed_fits, "../reports/figures/ord/", "enet_imputed")
+  
+  metrics <- data.frame()
+  coefs <- data.frame()
+  rocs <- data.frame()
+  options(scipen = 999)
+  for (f in 1:length(imputed_fits)) {
+    # enet metrics
+    nme <- names(imputed_fits[f])
+    cv_auc_mean <- imputed_fits[[f]]$cv$cv_metrics$mean[2]
+    cv_auc_se <- imputed_fits[[f]]$cv$cv_metrics$std_err[2]
+    test_auc <- imputed_fits[[f]]$test_score$.estimate
+    null_auc_mean <- mean(imputed_fits[[f]]$null_aucs)
+    # mw_u_u <- imputed_fits[[f]]$mw_u$u
+    mw_u_p <- imputed_fits[[f]]$mw_u$p
+    
+    tmp <- data.frame(nme, cv_auc_mean, cv_auc_se, test_auc, null_auc_mean, mw_u_p)
+    metrics <- rbind(metrics, tmp)
+    
+    # ols coefficients
+    # 
+    # coefs_df <- tidy(imputed_fits[[f]]$log_fit, exponentiate = TRUE, conf.int = TRUE)
+    # coefs_df$model <- nme
+    # 
+    # coefs <- rbind(coefs, coefs_df)
+    roc_tmp <- imputed_fits[[f]]$test_roc
+    roc_tmp$model <- nme
+    rocs <- rbind(rocs, roc_tmp)
+    
+  }
+  
+  
+  source("visualization/visualize.R")
+  
+  theme_set(theme_classic(base_size = 15))
+  
+  load("../models/enet_imputed_ord.rda")
+  
+  
+  compare_metrics_class(metrics)
+  ggsave("../reports/figures/ord/predict_class_compare.png")
+  
+  cv_coef <- gather_cv_coef(imputed_fits, use_ref = FALSE)
+  
+  
+  feature_imp(cv_coef$cv_coefs_long, use_ref = FALSE)
+  ggsave("../reports/figures/ord/predict_class_features.png", width=10, units='in')
+  write.csv(cv_coef$cv_coefs_long, '../data/model_output/class_coefs.csv', row.names = FALSE)
+  
+  
+  svg("../reports/figures/ord/predict_class_rocs.svg")
+  roc_plot_class(rocs)
+  dev.off()
+  
+  
+  
+  write.csv(cv_coef$cv_coefs, "../reports/tables/ord/class_predic_coef.csv")
+  
+  
+  write.csv(metrics, "../reports/tables/ord/class_predict_perf.csv", row.names = FALSE)
+  
+  
+}
 
-compare_metrics_class(metrics)
-ggsave("../reports/figures/ord/predict_class_compare.png")
-
-cv_coef <- gather_cv_coef(imputed_fits, use_ref = FALSE)
-
-
-feature_imp(cv_coef$cv_coefs_long, use_ref = FALSE)
-ggsave("../reports/figures/ord/predict_class_features.png", width=10, units='in')
-write.csv(cv_coef$cv_coefs_long, '../data/model_output/class_coefs.csv', row.names = FALSE)
-
-
-svg("../reports/figures/ord/predict_class_rocs.svg")
-roc_plot_class(rocs)
-dev.off()
-
-
-
-write.csv(cv_coef$cv_coefs, "../reports/tables/ord/class_predic_coef.csv")
-
-
-write.csv(metrics, "../reports/tables/ord/class_predict_perf.csv", row.names = FALSE)
 

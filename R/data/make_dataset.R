@@ -502,7 +502,7 @@ management_procedure <- function() {
   df <- reorder_factors(df)
   
   df <- df %>%
-    select(-trt_grp) %>%
+    # select(-trt_grp) %>%
     select(subject_id, site, visit, trt_recode, everything())
   
   # make sure nothing is duplicated

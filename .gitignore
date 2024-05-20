@@ -52,6 +52,9 @@ reports/**
 !reports/**/
 !reports/**/.gitignore
 
+notebooks/**
+!notebooks/**/
+!notebooks/**/.gitignore
 
 #MacOS
 .DS_Store

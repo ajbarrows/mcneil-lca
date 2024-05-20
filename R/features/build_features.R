@@ -172,7 +172,7 @@ collapse_counts <- function(df) {
 
 
 construct_ordinal <- function(df) {
-  non_vars <- c("site", "visit", "trt_recode", "sex", "quit")
+  non_vars <- c("site", "visit", "trt_recode", 'trt_grp', "sex", "quit")
   zero_vars <- c("n_quit_attempts", "ts_last_quit_attempt", "anxiety", "depression", "int_to_quit")
   
   df %>%

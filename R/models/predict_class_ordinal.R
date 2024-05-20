@@ -2,19 +2,7 @@ library(tidymodels)
 library(tictoc)
 library(doParallel)
 
-source("visualization/visualize.R")
 
-load("../data/processed/pred_imputedord.rda")
-load("../data/processed/pred_nomissord.rda")
-load("../data/predicted/lca3_predict.rda")
-
-set.seed(42)
-
-# parallelization
-
-all_cores <- parallel::detectCores(logical = FALSE)
-cl <- makePSOCKcluster(all_cores)
-registerDoParallel(cl)
 
 # functions --- 
 
@@ -425,68 +413,87 @@ fit_procedure <- function(train_splits, test_splits) {
 }
 
 
-# main --- 
-m3_class_df <- model_traj_df
 
-df_imputed <- join_lca(m3_class_df, pred_imputed)
-df_imputed_split <- initial_split(df_imputed, prop = 0.8)
-imputed_train <- training(df_imputed_split)
-imputed_test <- testing(df_imputed_split)
+if (sys.nframe() == 0) {
+  
+  source("visualization/visualize.R")
+  
+  load("../data/processed/pred_imputedord.rda")
+  load("../data/processed/pred_nomissord.rda")
+  load("../data/predicted/lca3_predict.rda")
+  
+  set.seed(42)
+  
+  # parallelization
+  
+  all_cores <- parallel::detectCores(logical = FALSE)
+  cl <- makePSOCKcluster(all_cores)
+  registerDoParallel(cl)
+  # main --- 
+  m3_class_df <- model_traj_df
+  
+  df_imputed <- join_lca(m3_class_df, pred_imputed)
+  df_imputed_split <- initial_split(df_imputed, prop = 0.8)
+  imputed_train <- training(df_imputed_split)
+  imputed_test <- testing(df_imputed_split)
+  
+  # df_nomiss <- join_lca(m3_class_df, pred_nomiss)
+  # df_nomiss_split <- initial_split(df_nomiss, prop = 0.8)
+  # nomiss_train <- training(df_nomiss_split)
+  # nomiss_test <- testing(df_nomiss_split)
+  
+  
+  # train
+  
+  imputed_train_split <- split_df(imputed_train)
+  imputed_test_split <- split_df(imputed_test)
+  
+  return_counts(imputed_train_split, imputed_test_split)
+  
+  # usa
+  imputed_train_usa <- split_df(imputed_train %>% filter(site == "usa") %>% select(-site))
+  imputed_test_usa <- split_df(imputed_test %>% filter(site == "usa") %>% select(-site))
+  
+  # aus
+  imputed_train_aus <- split_df(imputed_train %>% filter(site == "aus") %>% select(-site))
+  imputed_test_aus <- split_df(imputed_test %>% filter(site == "aus") %>% select(-site))
+  
+  # swi
+  imputed_train_swi <- split_df(imputed_train %>% filter(site == "swi") %>% select(-site))
+  imputed_test_swi <- split_df(imputed_test %>% filter(site == "swi") %>% select(-site))
+  
+  # den
+  imputed_train_den <- split_df(imputed_train %>% filter(site == "den") %>% select(-site))
+  imputed_test_den <- split_df(imputed_test %>% filter(site == "den") %>% select(-site))
+  
+  # ger
+  imputed_train_ger <- split_df(imputed_train %>% filter(site == "ger") %>% select(-site))
+  imputed_test_ger <- split_df(imputed_test %>% filter(site == "ger") %>% select(-site))
+  
+  
+  
+  imputed_fits <- fit_procedure(imputed_train_split, imputed_test_split)
+  # usa <- fit_procedure(imputed_train_usa, imputed_test_usa)
+  # aus <- fit_procedure(imputed_train_aus, imputed_test_aus)
+  # swi <- fit_procedure(imputed_train_swi, imputed_test_swi)
+  # den <- fit_procedure(imputed_train_den, imputed_test_den)
+  # ger <- fit_procedure(imputed_train_ger, imputed_test_ger)
+  
+  # bysite
+  
+  
+  
+  # nomiss_fits <- fit_procedure(nomiss_train_split, nomiss_test_split)
+  # # 
+  save(imputed_fits, file = "../models/enet_imputed_ord.rda")
+  # save(usa, file = "../models/predict_class_usa.rda")
+  # save(aus, file = "../models/predict_class_aus.rda")
+  # save(swi, file = "../models/predict_class_swi.rda")
+  # save(den, file = "../models/predict_class_den.rda")
+  # save(ger, file = "../models/predict_class_ger.rda")
+  
+}
 
-# df_nomiss <- join_lca(m3_class_df, pred_nomiss)
-# df_nomiss_split <- initial_split(df_nomiss, prop = 0.8)
-# nomiss_train <- training(df_nomiss_split)
-# nomiss_test <- testing(df_nomiss_split)
-
-
-# train
-
-imputed_train_split <- split_df(imputed_train)
-imputed_test_split <- split_df(imputed_test)
-
-return_counts(imputed_train_split, imputed_test_split)
-
-# usa
-imputed_train_usa <- split_df(imputed_train %>% filter(site == "usa") %>% select(-site))
-imputed_test_usa <- split_df(imputed_test %>% filter(site == "usa") %>% select(-site))
-
-# aus
-imputed_train_aus <- split_df(imputed_train %>% filter(site == "aus") %>% select(-site))
-imputed_test_aus <- split_df(imputed_test %>% filter(site == "aus") %>% select(-site))
-
-# swi
-imputed_train_swi <- split_df(imputed_train %>% filter(site == "swi") %>% select(-site))
-imputed_test_swi <- split_df(imputed_test %>% filter(site == "swi") %>% select(-site))
-
-# den
-imputed_train_den <- split_df(imputed_train %>% filter(site == "den") %>% select(-site))
-imputed_test_den <- split_df(imputed_test %>% filter(site == "den") %>% select(-site))
-
-# ger
-imputed_train_ger <- split_df(imputed_train %>% filter(site == "ger") %>% select(-site))
-imputed_test_ger <- split_df(imputed_test %>% filter(site == "ger") %>% select(-site))
-
-
-
-imputed_fits <- fit_procedure(imputed_train_split, imputed_test_split)
-# usa <- fit_procedure(imputed_train_usa, imputed_test_usa)
-# aus <- fit_procedure(imputed_train_aus, imputed_test_aus)
-# swi <- fit_procedure(imputed_train_swi, imputed_test_swi)
-# den <- fit_procedure(imputed_train_den, imputed_test_den)
-# ger <- fit_procedure(imputed_train_ger, imputed_test_ger)
-
-# bysite
-
-
-
-# nomiss_fits <- fit_procedure(nomiss_train_split, nomiss_test_split)
-# # 
-save(imputed_fits, file = "../models/enet_imputed_ord.rda")
-# save(usa, file = "../models/predict_class_usa.rda")
-# save(aus, file = "../models/predict_class_aus.rda")
-# save(swi, file = "../models/predict_class_swi.rda")
-# save(den, file = "../models/predict_class_den.rda")
-# save(ger, file = "../models/predict_class_ger.rda")
 
 
 
