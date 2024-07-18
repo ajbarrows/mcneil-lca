@@ -1,0 +1,19 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: mcneil-lca
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Anthony Barrows
+    email: ajbarrow@uvm.edu
+    affiliation: University of Vermont
+    orcid: 'https://orcid.org/0000-0003-1941-4660'
+repository-code: 'https://github.com/ajbarrows/mcneil-lca'
+abstract: >-
+  Code required to reproduce results from 'Smoking reduction
+  trajectories, and their association with smoking
+  cessation: A secondary analysis of longitudinal RCT data '
