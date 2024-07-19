@@ -1,0 +1,54 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(ggplot2)
+```
+
+```{r}
+m3_propchange <- loadRData('../data/predicted/lca3_predict.rda')
+m3_propchange$class <- factor(m3_propchange$class)
+```
+
+```{r}
+sample_ids <- sample(m3_propchange$subject_id, 50)
+```
+
+
+```{r}
+m3_propchange %>%
+  filter(subject_id %in% sample_ids) %>%
+  ggplot(aes(x=week, y=prop_change, color=class, group=subject_id)) +
+    geom_point(show.legend = FALSE) +
+    geom_line(show.legend = FALSE) +
+    theme_void()
+
+ggsave('../reports/figures/trajectory_sketch.png', dpi='retina')
+```
+
+```{r}
+# simulate logistic regression example
+n = 100
+X = seq(-4, 6, length.out=n)
+pr_x = plogis(X)
+sim_data = rbinom(n, 1, pr_x)
+
+df = data.frame(X, pr_x, sim_data)
+
+# randomly replace some simulated data with NA
+size <- nrow(df)*ncol(df)
+ind <- sample(1:size, floor(0.75*size))
+df[ind, "sim_data"] <- NA
+
+ggplot(df, aes(X, pr_x)) +
+  geom_line(size=3) +
+  geom_point(aes(y=sim_data), color="blue", alpha=0.7, size=5) +
+  theme_void()
+
+ggsave('../reports/figures/logistic_sketch.png', dpi='retina')
+```
+
+

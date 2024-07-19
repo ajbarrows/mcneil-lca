@@ -1,0 +1,92 @@
+\begin{thebibliography}{9}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Batra et~al.(2005)Batra, Klingler, Landfeldt, Friederich, Westin, and
+  Danielsson]{batraSmokingReductionTreatment2005}
+A.~Batra, K.~Klingler, B.~Landfeldt, H.~Friederich, A.~Westin, and
+  T.~Danielsson.
+\newblock Smoking reduction treatment with 4-mg nicotine gum: {{A}}
+  double-blind, randomized, placebo-controlled study.
+\newblock \emph{Clinical Pharmacology \& Therapeutics}, 78\penalty0
+  (6):\penalty0 689--696, Dec. 2005.
+\newblock ISSN 00099236.
+\newblock \doi{10.1016/j.clpt.2005.08.019}.
+
+\bibitem[Bolliger(2000)]{bolligerSmokingReductionOral2000}
+C.~T. Bolliger.
+\newblock Smoking reduction with oral nicotine inhalers: Double blind,
+  randomised clinical trial of efficacy and safety.
+\newblock \emph{BMJ}, 321\penalty0 (7257):\penalty0 329--333, Aug. 2000.
+\newblock ISSN 09598138.
+\newblock \doi{10.1136/bmj.321.7257.329}.
+
+\bibitem[Fagerstrom et~al.(1990)Fagerstrom, Heatherton, and
+  Kozlowski]{fagerstromNicotineAddictionIts1990}
+K.~O. Fagerstrom, T.~F. Heatherton, and L.~T. Kozlowski.
+\newblock Nicotine addiction and its assessment.
+\newblock \emph{Ear, Nose, \& Throat Journal}, 69\penalty0 (11):\penalty0
+  763--765, Nov. 1990.
+\newblock ISSN 0145-5613.
+
+\bibitem[Haustein(2001)]{hausteinDoubleblindRandomizedPlacebocontrolled2001}
+K.~Haustein.
+\newblock A double-blind, randomized, placebo-controlled multicentre trial of a
+  nicotine chewing gum in smoking reduction.
+\newblock \emph{Study ID 980-CHC-9021-0013. Unpublished data.}, 2001.
+
+\bibitem[Lindson et~al.(2019)Lindson, Klemperer, Hong, {Ord{\'o}{\~n}ez-Mena},
+  and Aveyard]{lindsonSmokingReductionInterventions2019}
+N.~Lindson, E.~Klemperer, B.~Hong, J.~M. {Ord{\'o}{\~n}ez-Mena}, and
+  P.~Aveyard.
+\newblock Smoking reduction interventions for smoking cessation.
+\newblock \emph{Cochrane Database of Systematic Reviews}, 2019\penalty0 (9),
+  Sept. 2019.
+\newblock ISSN 14651858.
+\newblock \doi{10.1002/14651858.CD013183.pub2}.
+
+\bibitem[Olufade et~al.(1999)Olufade, Shaw, Foster, Leischow, Hays, and
+  Coons]{OlufadeEtAl1999}
+A.~O. Olufade, J.~W. Shaw, S.~A. Foster, S.~J. Leischow, R.~D. Hays, and S.~J.
+  Coons.
+\newblock Development of the {{Smoking Cessation}} quality of life
+  questionnaire.
+\newblock \emph{Clinical Therapeutics}, 21\penalty0 (12):\penalty0 2113--2130,
+  Dec. 1999.
+\newblock ISSN 01492918.
+\newblock \doi{10.1016/S0149-2918(00)87242-2}.
+
+\bibitem[Rennard et~al.(2006)Rennard, Glover, Leischow, Daughton, Glover,
+  Muramoto, Franzon, Danielsson, Landfeldt, and
+  Westin]{rennardEfficacyNicotineInhaler2006}
+S.~Rennard, E.~Glover, S.~Leischow, D.~Daughton, P.~Glover, M.~Muramoto,
+  M.~Franzon, T.~Danielsson, B.~Landfeldt, and {\AA}.~Westin.
+\newblock Efficacy of the nicotine inhaler in smoking reduction: {{A}}
+  double-blind, randomized trial.
+\newblock \emph{Nicotine \& Tobacco Research}, 8\penalty0 (4):\penalty0
+  555--564, Aug. 2006.
+\newblock ISSN 1462-2203.
+\newblock \doi{10.1080/14622200600789916}.
+
+\bibitem[Wennike et~al.(2003)Wennike, Danielsson, Landfeldt, Westin, and
+  T{\o}nnesen]{wennikeSmokingReductionPromotes2003}
+P.~Wennike, T.~Danielsson, B.~Landfeldt, {\AA}.~Westin, and P.~T{\o}nnesen.
+\newblock Smoking reduction promotes smoking cessation: Results from a double
+  blind, randomized, placebo-controlled trial of nicotine gum with 2-year
+  follow-up: {{Smoking}} reduction with nicotine gum.
+\newblock \emph{Addiction}, 98\penalty0 (10):\penalty0 1395--1402, Oct. 2003.
+\newblock ISSN 09652140.
+\newblock \doi{10.1046/j.1360-0443.2003.00489.x}.
+
+\bibitem[{World Health
+  Organization}(2011)]{worldhealthorganizationWHOReportGlobal2011}
+{World Health Organization}.
+\newblock {{WHO}} report on the global tobacco epidemic, 2011: Warning about
+  the dangers of tobacco.
+\newblock 2011.
+\newblock ISSN 9789244564264.
+
+\end{thebibliography}

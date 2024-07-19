@@ -1,0 +1,37 @@
+---
+title: "Data Validation"
+output: html_notebook
+---
+
+```{r}
+library(dplyr)
+```
+
+
+```{r}
+load("../data/processed/pred_imputedord.rda")
+```
+
+```{r}
+
+```
+
+
+
+
+```{r}
+pred_imputed %>%
+  count(trt_grp) %>%
+  mutate(n / sum(n) * 100)
+```
+
+
+
+Inclusion Criteria:
+
+* Denmark: aged 18 years or older, were currently smoking ≥15 cigarettes/day, had smoked regularly ≥3 years, had an exhaled carbon monoxide (CO) level ≥15 p.p.m. after at least 15 smoke-free minutes, had failed at least one serious quit attempt within the last 24 months and wanted to reduce smoking as much as possible with the help of nicotine gum.
+
+* Switzerland: healthy adults ≥15 cigarettes/day, one serious QA last 12 months
+
+* USA: 20 cigarettes/day, have smoked for at least 3 years, have failed at least one serious quit attempt within the previous 2 years, and want to reduce their cigarette consumption.
+

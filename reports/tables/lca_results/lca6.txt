@@ -1,0 +1,70 @@
+Heterogenous linear mixed model 
+     fitted by maximum likelihood method 
+ 
+hlme(fixed = prop_change ~ week, mixture = ~week, subject = "subject_id", 
+    ng = n_classes, data = df, verbose = FALSE, var.time = "week")
+ 
+Statistical Model: 
+     Dataset: df 
+     Number of subjects: 1783 
+     Number of observations: 5578 
+     Number of latent classes: 6 
+     Number of parameters: 18  
+ 
+Iteration process: 
+     Convergence criteria satisfied 
+     Number of iterations:  45 
+     Convergence criteria: parameters= 4.7e-08 
+                         : likelihood= 4.9e-07 
+                         : second derivatives= 8.8e-13 
+ 
+Goodness-of-fit statistics: 
+     maximum log-likelihood: 125.77  
+     AIC: -215.54  
+     BIC: -116.79  
+ 
+ 
+Maximum Likelihood Estimates: 
+ 
+Fixed effects in the class-membership model:
+(the class of reference is the last class) 
+
+                     coef      Se    Wald p-value
+intercept class1 -2.22311 0.23364  -9.515 0.00000
+intercept class2 -1.44074 0.18057  -7.979 0.00000
+intercept class3 -0.19097 0.14479  -1.319 0.18720
+intercept class4 -1.34262 0.23297  -5.763 0.00000
+intercept class5 -0.27592 0.18226  -1.514 0.13005
+
+Fixed effects in the longitudinal model:
+
+                     coef      Se    Wald p-value
+intercept class1 -0.85819 0.04233 -20.272 0.00000
+intercept class2 -0.43297 0.03098 -13.977 0.00000
+intercept class3 -0.31261 0.01924 -16.252 0.00000
+intercept class4 -0.65719 0.03464 -18.971 0.00000
+intercept class5 -0.40374 0.01605 -25.150 0.00000
+intercept class6 -0.20733 0.01044 -19.853 0.00000
+week class1      -0.00367 0.00214  -1.713 0.08668
+week class2      -0.02173 0.00161 -13.462 0.00000
+week class3      -0.00064 0.00137  -0.465 0.64224
+week class4       0.01929 0.00189  10.186 0.00000
+week class5      -0.00732 0.00108  -6.788 0.00000
+week class6       0.00726 0.00059  12.246 0.00000
+
+                             coef      Se
+Residual standard error:  0.17782 0.00209
+
+                     coef      Se    Wald p-value
+intercept class1 -0.85819 0.04233 -20.272 0.00000
+intercept class2 -0.43297 0.03098 -13.977 0.00000
+intercept class3 -0.31261 0.01924 -16.252 0.00000
+intercept class4 -0.65719 0.03464 -18.971 0.00000
+intercept class5 -0.40374 0.01605 -25.150 0.00000
+intercept class6 -0.20733 0.01044 -19.853 0.00000
+week class1      -0.00367 0.00214  -1.713 0.08668
+week class2      -0.02173 0.00161 -13.462 0.00000
+week class3      -0.00064 0.00137  -0.465 0.64224
+week class4       0.01929 0.00189  10.186 0.00000
+week class5      -0.00732 0.00108  -6.788 0.00000
+week class6       0.00726 0.00059  12.246 0.00000

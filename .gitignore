@@ -48,16 +48,16 @@ models/**
 !models/**/
 !models/**/.gitignore
 
-reports/**
+#reports/**
 !reports/**/
 !reports/**/.gitignore
 
-notebooks/**
-!notebooks/**/
-!notebooks/**/.gitignore
+#notebooks/**
+#!notebooks/**/
+#!notebooks/**/.gitignore
 
 #MacOS
 .DS_Store
 
 # Any folder with .gitignore
-!.gitignore
+!.gitkeep

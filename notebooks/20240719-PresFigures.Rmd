@@ -1,0 +1,147 @@
+---
+title: "Presentation Figuresk"
+output: html_notebook
+---
+
+
+```{r}
+source('../R/visualization/visualize.R')
+
+theme_set(theme_classic(base_size=18))
+```
+
+
+Fix model-fit plot
+
+
+```{r}
+load("../models/lca_models.RData")
+```
+
+
+```{r}
+
+goodness_of_fit_df <- function(mod_list) {
+  df <- data.frame("BIC" = NA, "AIC" = NA, "class" = NA)
+  
+  for (i in 1:length(mod_list)) {
+    tmp <- data.frame(
+      "BIC" = mod_list[[i]]$BIC,
+      "AIC" = mod_list[[i]]$AIC,
+      "class" = i)
+    
+    df <- rbind(df, tmp)
+    
+  }
+  return(df %>% tidyr::drop_na())
+}
+
+plot_bic <- function(bic_df) {
+  bic_df %>%
+    mutate(class = factor(class)) %>%
+    ggplot(aes(x = class, y = BIC)) +
+    geom_point(size=5) +
+    geom_line(group = 1, linewidth=1) +
+    labs(
+      x = "Class",
+      title = "Linear Mixed Model Goodness of Fit"
+    )
+}
+
+bic_df <- goodness_of_fit_df(cpd_lca)
+plot_bic(bic_df)
+ggsave('../reports/figures/pres/bic_pres.pdf')
+
+```
+
+
+
+
+Feature importance plot
+
+
+
+```{r}
+df <- read.csv('../data/model_output/class_coefs.csv')
+df
+```
+
+
+
+
+```{r}
+feature_imp <- function(cv_coefs_long, use_ref = TRUE, dashline = 1) {
+  fill_values <- c(
+    "Class 1 vs. All" = "#F8766D", 
+    "Class 2 vs. All" = "#00BA38", 
+    "Class 3 vs. All" = "#619CFF",
+    "Class 1 vs. Class 2" = "#C77CFF"
+  )
+  
+  plt_df <- cv_coefs_long %>% 
+    filter(term != "(Intercept)" | is.na(term)) %>%
+    filter(!is.na(feature))
+  
+  plt <- plt_df %>%
+    ggplot(aes(y = level, x = mean_est, color = model)) +
+    geom_pointrange(
+      aes(xmin = mean_est - sd_est, xmax = mean_est + sd_est),
+      size = 2.25,
+      linewidth=1.75,
+      show.legend = FALSE
+    )  + theme_bw(base_size=40) 
+  
+  if (use_ref) {
+    plt <- plt + 
+      geom_point(
+        data = plt_df %>% filter(is.na(term)),
+        color = "black",
+        size = 2.25,
+        shape = 15)
+  }
+  
+  plt <- plt + 
+    geom_vline(aes(xintercept = dashline), linetype = "dashed") +
+    ggh4x::facet_nested(
+      feature ~ model, 
+      scales = "free_y", 
+      space = "free_y",
+      switch = "y",
+      drop = TRUE) +
+
+    theme(
+      strip.placement = "outside",
+      strip.text.y.left = element_text(angle = 0)) +
+    scale_color_manual(values = fill_values) +
+    labs(
+      y = "", 
+      x = "Average Feature Importance",
+      color = ""
+    ) 
+  
+  plt
+  
+}
+
+feature_imp(df)
+ggsave("../reports/figures/pres/fis_lca_pres.pdf", width=30, height = 20, units='in')
+```
+
+```{r}
+df_og_results <- df %>% filter(!stringr::str_detect(model, "Placebo NRT"))
+```
+
+
+```{r}
+feature_imp(df_og_results)
+ggsave("../reports/figures/pres/fis_lca_justclass_pres.pdf", width=30, height = 20, units='in')
+```
+
+```{r}
+df_cessation <- read.csv('../data/model_output/cessation_coefs.csv')
+
+feature_imp(df_cessation) + scale_color_brewer(palette = "Set2")
+ggsave("../reports/figures/pres/fis_cessation_pres.pdf", width=24, height = 20, units='in')
+```
+
+

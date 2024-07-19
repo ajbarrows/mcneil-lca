@@ -1,0 +1,139 @@
+---
+title: "20230711-PubViz"
+output: html_document
+date: "2023-07-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(ggh4x)
+```
+
+
+```{r}
+df <- read.csv("../data/model_output/class_coefs.csv")
+df$analysis <- 'Predicting Class Membership'
+
+tmp <- read.csv("../data/model_output/cessation_coefs.csv")
+tmp$analysis <- 'Predicting Smoking Cessation'
+
+df <- rbind(df, tmp)
+head(df)
+```
+
+```{r fig.width=15}
+dashline <- 1
+use_ref <- TRUE
+
+fill_values <- c(
+  "Class 1 vs. All" = "#F8766D", 
+  "Class 2 vs. All" = "#00BA38", 
+  "Class 3 vs. All" = "#619CFF",
+  "Baseline Characteristics\n Alone" = "#C77CFF",
+  "Baseline Char. &\nLatent Class" = "#FC61D5"
+  
+)
+
+plt_df <- df %>% 
+  filter(term != "(Intercept)" | is.na(term)) %>%
+  filter(!is.na(feature))
+
+plt_df
+
+```
+
+```{r fig.width=15}
+DASHLINE = 1
+
+plt <- plt_df %>%
+  ggplot(aes(y = level, x = mean_est, color = model, shape = model)) +
+  geom_vline(aes(xintercept = DASHLINE), linetype = 'dashed') +
+  geom_pointrange(
+    aes(xmin = mean_est - sd_est, xmax = mean_est + sd_est),
+    show.legend = FALSE
+  ) 
+
+if (use_ref) {
+  plt <- plt + 
+    geom_point(
+      data = plt_df %>% filter(is.na(term)),
+      color = "black",
+      size = 2.75,
+      shape = 15)
+}
+
+
+texts <- list(element_text(face = "bold"), NULL)
+
+plt + ggh4x::facet_nested(
+      feature ~ analysis + model, 
+      # nest_line = element_line(linetype = 2),
+      nest_line = TRUE,
+      scales = "free_y", 
+      space = "free_y",
+      switch = "y",
+      drop = TRUE) +
+      theme_bw() +
+    theme(
+      strip.placement = "outside",
+      strip.background.x = element_blank(),
+      strip.text.y.left = element_text(angle = 0)) +
+    scale_color_manual(values = fill_values) +
+    labs(
+      y = "", 
+      x = "Average Feature Importance",
+      color = ""
+    ) 
+
+ggsave('../reports/figures/ord/feature_importance.svg')
+```
+
+
+
+```{r}
+
+plt <- plt_df %>%
+  ggplot(aes(y = level, x = mean_est, color = model)) +
+  geom_pointrange(
+    aes(xmin = mean_est - sd_est, xmax = mean_est + sd_est),
+    show.legend = FALSE
+  ) 
+
+
+if (use_ref) {
+  plt <- plt + 
+    geom_point(
+      data = plt_df %>% filter(is.na(term)),
+      color = "black",
+      size = 2.75,
+      shape = 15)
+}
+  
+  plt <- plt + 
+    geom_vline(aes(xintercept = dashline), linetype = "dashed") +
+    ggh4x::facet_nested(
+      feature ~ model, 
+      scales = "free_y", 
+      space = "free_y",
+      switch = "y",
+      drop = TRUE) +
+    theme_bw() +
+    theme(
+      strip.placement = "outside",
+      strip.text.y.left = element_text(angle = 0)) +
+    scale_color_manual(values = fill_values) +
+    labs(
+      y = "", 
+      x = "Average Feature Importance",
+      color = ""
+    ) 
+plt
+```
+
+

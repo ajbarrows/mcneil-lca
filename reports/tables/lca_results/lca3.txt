@@ -1,0 +1,55 @@
+Heterogenous linear mixed model 
+     fitted by maximum likelihood method 
+ 
+hlme(fixed = prop_change ~ week, mixture = ~week, subject = "subject_id", 
+    ng = n_classes, data = df, verbose = FALSE, var.time = "week")
+ 
+Statistical Model: 
+     Dataset: df 
+     Number of subjects: 1783 
+     Number of observations: 5578 
+     Number of latent classes: 3 
+     Number of parameters: 9  
+ 
+Iteration process: 
+     Convergence criteria satisfied 
+     Number of iterations:  17 
+     Convergence criteria: parameters= 1.2e-09 
+                         : likelihood= 5.3e-08 
+                         : second derivatives= 5.6e-15 
+ 
+Goodness-of-fit statistics: 
+     maximum log-likelihood: 11.81  
+     AIC: -5.62  
+     BIC: 43.75  
+ 
+ 
+Maximum Likelihood Estimates: 
+ 
+Fixed effects in the class-membership model:
+(the class of reference is the last class) 
+
+                     coef      Se    Wald p-value
+intercept class1 -1.30764 0.10612 -12.322 0.00000
+intercept class2  0.03016 0.07863   0.384 0.70130
+
+Fixed effects in the longitudinal model:
+
+                     coef      Se    Wald p-value
+intercept class1 -0.57909 0.01659 -34.906 0.00000
+intercept class2 -0.40537 0.00835 -48.534 0.00000
+intercept class3 -0.24862 0.00843 -29.509 0.00000
+week class1      -0.01460 0.00093 -15.711 0.00000
+week class2      -0.00234 0.00056  -4.199 0.00003
+week class3       0.00713 0.00050  14.348 0.00000
+
+                             coef      Se
+Residual standard error:  0.19671 0.00204
+
+                     coef      Se    Wald p-value
+intercept class1 -0.57909 0.01659 -34.906   0e+00
+intercept class2 -0.40537 0.00835 -48.534   0e+00
+intercept class3 -0.24862 0.00843 -29.509   0e+00
+week class1      -0.01460 0.00093 -15.711   0e+00
+week class2      -0.00234 0.00056  -4.199   3e-05
+week class3       0.00713 0.00050  14.348   0e+00

@@ -1,0 +1,52 @@
+	\centering
+	\begin{tikzpicture}[auto]
+		\node [block] (init) {
+			\parbox{6.5 cm}{
+				\begin{tabular}{ll}
+					\multicolumn{2}{l}{{\textbf{Smokers recruited for NRT trials:}}} \\
+					Australia & $n = 436$ \\
+					Denmark & $n = 411$ \\
+					Germany & $n = 385$ \\
+					Switzerland & $n = 400$ \\
+					USA & $n = 434$
+				\end{tabular}
+				
+			}
+		};
+		
+		\node[block, right=of init] (excluded) {
+			\parbox{7.5cm}{
+				\begin{tabular}{ll}
+					\multicolumn{2}{l}{{\textbf{Excluded ($n = 108$):}}} \\
+					Missing 7 or more baseline measures & $n = 101$ \\
+					Missing baseline CPD value & $n = 7$
+			\end{tabular}
+		}
+		};
+		
+		\node [block, below= of init] (lca) {
+			\parbox{6cm}{
+				\begin{tabular}{ll}
+					\multicolumn{2}{l}{{\textbf{Assigned latent class ($n = 1783$):}}} \\
+					Class 1& $n = 186$ \\
+					Class 2 & $n = 803$ \\
+					Class 3 & $n = 794$
+			\end{tabular}
+		}
+		};
+		\node [block, below = of lca] (co) {
+			\parbox{5.5cm}{
+				\begin{tabular}{ll}
+					\multicolumn{2}{l}{{\textbf{1-year CO values available:}}} \\
+					Class 1& $n = 143/186$ (76.9\%)\\
+					Class 2 & $n = 500/803$ (62.3\%) \\
+					Class 3 &  $n = 285/794$ (35.9\%)
+				\end{tabular}
+				
+		}};
+		
+		\draw[->] (init.east) -- (excluded.west);
+		\draw[->] (init.south) -- (lca.north);
+		\draw[->] (lca.south) --(co.north);
+		
+	\end{tikzpicture}

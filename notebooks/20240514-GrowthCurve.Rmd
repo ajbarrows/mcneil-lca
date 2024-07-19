@@ -1,0 +1,225 @@
+---
+title: "Growth Curve Models"
+output: html_notebook
+---
+
+
+```{r}
+library(lcmm)
+library(dplyr)
+library(ggplot2)
+load("../data/processed/smoking_traj.rda")
+source("../R/visualization/visualize.R")
+```
+
+
+```{r}
+traj
+```
+
+```{r}
+cpd_hlme <- function(df, n_classes, B = NULL) {
+  # specify "warm start" parameter estimates from the first model
+  if (n_classes == 1) {
+    hlme(
+      # prop_change ~ week,
+      fixed = avg_cpd ~ week + bl_cpd,
+      # fixed = avg_cpd ~ week,
+      # random = ~bl_cpd,
+      subject = "subject_id",
+      data = df,
+      var.time = "week",
+      verbose = FALSE
+    )
+  } else if (n_classes > 1) {
+    hlme(
+      # prop_change ~ week,
+      # fixed = avg_cpd ~ week,
+      fixed = avg_cpd ~ week + bl_cpd,
+      # random = ~bl_cpd,
+      mixture = ~ week,
+      subject = "subject_id",
+      data = df,
+      ng = n_classes,
+      B = B,
+      var.time = "week",
+      verbose = FALSE
+    )
+  }
+}
+
+goodness_of_fit_df <- function(mod_list) {
+  df <- data.frame("BIC" = NA, "AIC" = NA, "class" = NA)
+  
+  for (i in 1:length(mod_list)) {
+    tmp <- data.frame(
+      "BIC" = mod_list[[i]]$BIC,
+      "AIC" = mod_list[[i]]$AIC,
+      "class" = i)
+    
+    df <- rbind(df, tmp)
+    
+  }
+  return(df %>% tidyr::drop_na())
+}
+
+
+merge_class <- function(model, df_lca) {
+  class_probs <- as.data.frame(summarytable(model))
+  df <- model$pprob %>% left_join(df_lca, by = "subject_id")
+  
+  list(
+    "class_probs" = class_probs,
+    "df" = df
+  )
+}
+
+
+fit_model <- function(df_lca) {
+  m1 <- cpd_hlme(df_lca, n_classes = 1)
+  m2 <- cpd_hlme(df_lca, n_classes = 2, B = m1)
+  m3 <- cpd_hlme(df_lca, n_classes = 3, B = m1)
+  m4 <- cpd_hlme(df_lca, n_classes = 4, B = m1)
+  m5 <- cpd_hlme(df_lca, n_classes = 5, B = m1)
+  m6 <- cpd_hlme(df_lca, n_classes = 6, B = m1)
+
+ list(m1, m2, m3, m4, m5, m6)
+}
+
+```
+
+
+
+```{r}
+mod <- fit_model(traj)
+```
+
+
+```{r}
+# bic_df <- goodness_of_fit_df(mod)
+# plot_bic(bic_df)
+# ggsave("../reports/diagnostic/figures/lca/random_effect/bic.png", dpi='retina')
+```
+
+
+```{r}
+
+plot_trajectories <- function(df_lca, class_probs, n_classes) {
+  no_change <- 0
+  scale_factor <- 100
+  
+  latent_df <- class_probs$class_probs %>% 
+    select(starts_with("%")) %>%
+    tidyr::pivot_longer(everything()) %>%
+    mutate(
+      class = as.numeric(substr(name, 7, 7)),
+      value = paste(round(value, 2), "%", sep = "")
+    ) %>%
+    select(class, value) %>%
+    left_join(class_probs$df, by = "class")
+  
+  latent_df <- latent_df %>%
+    group_by(class) %>%
+    distinct(subject_id) %>%
+    count() %>%
+    left_join(latent_df, by = "class") %>%
+    mutate(
+      week = factor(week),
+      class = paste(class, ": ", value, " (n = ", n, ")", sep = ""),
+      class = factor(class)
+    )
+  
+  latent_sum <- latent_df %>%
+    group_by(class, week) %>%
+    summarize(
+      # pct_change = prop_change * scale_factor,
+      # avg_change = mean(pct_change, na.rm = TRUE),
+      # sd_change = sd(pct_change, na.rm = TRUE)
+      avg_change = mean(avg_cpd, na.rm = TRUE),
+      sd_change = sd(avg_cpd, na.rm = TRUE)
+    )
+  
+  classes <- latent_sum %>%
+    ungroup() %>%
+    distinct(class)
+  
+  
+  fill_values <- c(
+   "#F8766D", 
+   "#00BA38", 
+   "#00A9FF",
+   "#00BFC4",
+   "#C77CFF",
+   "#FF61CC"
+  )
+  
+  rand_subjects <- latent_df %>% distinct(subject_id) %>% sample_frac(0.1)
+  variance_plot <- latent_df %>% filter(subject_id %in% rand_subjects$subject_id)
+  
+  fill_values <- setNames(fill_values, classes$class)
+  
+  
+  p <- latent_sum %>%
+    ggplot(
+      aes(x = week, y = avg_change, color = class, group = class
+      )
+    ) +
+    geom_point() +
+    geom_line(linewidth = 1) +
+    theme(legend.position = "top", plot.title = element_text(size=15))+
+    # geom_hline(aes(yintercept = no_change), linetype = "dashed") +
+    # annotate("text", x = 1, y = no_change + 5, label = "No Change") +
+    labs(
+      x = "Follow-Up Week",
+      y = "Average CPD",
+      title = "Avg. Smoking Trajectories by Predicted Latent Class",
+      color = "Class"
+    )  +
+    scale_color_manual(values = fill_values)
+  p <- p + 
+    # geom_errorbar(
+    #   aes(ymin = avg_change - sd_change, ymax = avg_change + sd_change),
+    #   width = 0.1, size = 1, alpha = .05
+    # ) 
+      geom_errorbar(
+      aes(ymin = avg_change - sd_change, ymax = avg_change + sd_change),
+      width=0.1
+    ) 
+    # geom_line(
+    #   data = latent_df,
+    #   aes(x = week, y = prop_change * scale_factor, group = subject_id),
+    #   alpha = 0.09
+    # )
+  
+  list(
+    "plot" = p,
+    "latent_sum" = latent_sum
+  )
+}
+
+```
+
+
+```{r}
+for (m in mod) {
+  nme <- paste0("lca", m$ng)
+  model_traj <- merge_class(m, traj)
+  model_traj_df <- model_traj$df
+  
+  save(model_traj_df, file = paste0("../data/diagnostic/covariate/", nme, "_predict.rda"))
+  # plt <- plot_trajectories(traj, model_traj, n_classes = m$ng)
+  # ggsave(plot = plt$plot, file = paste0("../reports/diagnostic/figures/lca/random_effect/", nme, "-random_effect", ".png"), width = 7, height = 6, dpi='retina')
+
+}
+
+
+```
+
+
+
+
+
+```{r}
+model_traj_df
+```
+
