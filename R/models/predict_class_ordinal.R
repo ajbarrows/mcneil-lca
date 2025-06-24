@@ -112,7 +112,6 @@ nested_cv_enet <- function(train, n_outer_folds = 5, n_inner_folds = 5) {
       fit(class ~ ., data = fit)
     
     # evaluate model using eval data
-    
     result <- augment(enet_fit, eval)
     auc <- roc_auc(result, truth = class, .pred_yes, estimator = "binary")
     

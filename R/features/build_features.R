@@ -51,11 +51,17 @@ rm_no_cpd <- function(df) {
   df_sub <- df %>%
     filter(visit %in% visit_levels)
   
-  # only keep subjects with baseline cpd and at least one AVG cpd value
+  print(paste("Total subjects: ", nrow(df_sub %>% distinct(subject_id))))
+  
   has_bl <- df_sub %>%
-    filter(visit == "baseline" & !is.na(cpd)) %>% 
+    filter(visit == 'baseline') %>%
+    tidyr::drop_na(cpd) %>%
     select(subject_id) %>%
-    left_join(df_sub, by = "subject_id")
+    left_join(df_sub, by = 'subject_id')
+  
+  print(paste("Subjects with baseline cpd: ", nrow(has_bl %>% distinct(subject_id))))
+  
+  # only keep subjects with baseline cpd and at least one AVG cpd value
   
   has_bl %>%
     make_avg_cpd() %>%
@@ -193,6 +199,7 @@ features <- function(df, nme) {
   }
   
   traj <-  smoking_trajectories(df_lowmiss, visit_levels, visit_recode)
+  traj_nondrop <- smoking_trajectories(rm_no_cpd(df), visit_levels, visit_recode)
   
   df_lowmiss_bl <- df_lowmiss %>% filter(week == "baseline")
   
@@ -208,6 +215,7 @@ features <- function(df, nme) {
   
   
   save(traj, file = "../data/processed/smoking_traj.rda")
+  save(traj_nondrop, file = "../data/processed/smoking_traj_nondrop.rda")
   save(pred_imputed, file = paste0("../data/processed/pred_imputed", nme, ".rda"))
   save(pred_nomiss, file = paste0("../data/processed/pred_nomiss", nme, ".rda"))
 }

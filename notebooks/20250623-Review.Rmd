@@ -1,0 +1,307 @@
+---
+title: "Reviewer Response Analysis"
+output: html_notebook
+---
+
+```{r}
+source("../R/visualization/visualize.R")
+library(lcmm)
+# 
+load("../data/interim/compiled_data.rda")
+
+load("../data/processed/smoking_traj_nondrop.rda")
+
+```
+
+```{r}
+visit_levels <- c("baseline", "week 2", "week 10", "month 4", "month 6")
+visit_recode <-
+  c(
+    "baseline" = "baseline",
+    "week 2" = 2,
+    "week 10" = 10,
+    "month 4" = 18,
+    "month 6" = 26
+  )
+
+```
+
+## Fit Latent Class model using full dataset
+
+
+```{r}
+cpd_hlme <- function(df, n_classes, B = NULL) {
+  # specify "warm start" parameter estimates from the first model
+  if (n_classes == 1) {
+    hlme(
+      prop_change ~ week,
+      subject = "subject_id",
+      data = df,
+      var.time = "week",
+      verbose = FALSE
+    )
+  } else if (n_classes > 1) {
+    hlme(
+      prop_change ~ week,
+      mixture = ~ week,
+      subject = "subject_id",
+      data = df,
+      ng = n_classes,
+      B = B,
+      var.time = "week",
+      verbose = FALSE
+    )
+  }
+}
+
+fit_model <- function(df_lca) {
+  m1 <- cpd_hlme(df_lca, n_classes = 1)
+  m2 <- cpd_hlme(df_lca, n_classes = 2, B = m1)
+  m3 <- cpd_hlme(df_lca, n_classes = 3, B = m1)
+  m4 <- cpd_hlme(df_lca, n_classes = 4, B = m1)
+  m5 <- cpd_hlme(df_lca, n_classes = 5, B = m1)
+  m6 <- cpd_hlme(df_lca, n_classes = 6, B = m1)
+
+ list(m1, m2, m3, m4, m5, m6)
+}
+
+
+goodness_of_fit_df <- function(mod_list) {
+  df <- data.frame("BIC" = NA, "AIC" = NA, "class" = NA)
+  
+  for (i in 1:length(mod_list)) {
+    tmp <- data.frame(
+      "BIC" = mod_list[[i]]$BIC,
+      "AIC" = mod_list[[i]]$AIC,
+      "class" = i)
+    
+    df <- rbind(df, tmp)
+    
+  }
+  return(df %>% tidyr::drop_na())
+}
+
+
+merge_class <- function(model, df_lca) {
+  class_probs <- as.data.frame(summarytable(model))
+  df <- model$pprob %>% left_join(df_lca, by = "subject_id")
+  
+  list(
+    "class_probs" = class_probs,
+    "df" = df
+  )
+}
+
+
+mods_nomiss <- fit_model(traj_nondrop)
+```
+
+
+```{r}
+bic_df <- goodness_of_fit_df(mods_nomiss)
+bic <- plot_bic(bic_df)
+bic
+```
+
+```{r}
+model_traj <- merge_class(mods_nomiss[[3]], traj_nondrop)
+plot_trajectories(traj_nondrop, model_traj, n_classes = m$ng)
+ggsave("../reports/figures/review/nomiss_threeclass.png", dpi='retina')
+```
+
+
+### Examine missing data by latent class (from full dataset)
+
+
+```{r}
+library(naniar)
+library(viridis)
+
+full_df <- model_traj$df %>%
+  select(subject_id, class) %>%
+  distinct(.keep_all = TRUE) %>%
+  left_join(df %>% filter(visit == "baseline"), by = 'subject_id') %>%
+  mutate(class = factor(class))
+
+full_df
+```
+
+
+
+```{r}
+# Extract colors from viridis palette
+viridis_colors <- viridis(100)
+low_color <- viridis_colors[100]    # Dark purple
+high_color <- viridis_colors[1] # Yellow
+
+limited <- full_df %>% 
+    select(-c(site, visit, cpd, visit_date, quit, cpw, cpm, co))
+
+gg_miss_fct(
+  x = limited %>% select(-c(subject_id, trt_recode, trt_grp)), 
+  fct = class
+) +
+  scale_fill_gradient2(
+    low = low_color,
+    mid = "white", 
+    high = high_color,
+    midpoint = 0
+  ) +
+  labs(
+    title = "Missingness by Class",
+    fill = "% Missing"
+  )
+ggsave("../reports/figures/review/missingness_class.png", dpi='retina')
+```
+
+
+```{r}
+anova <- limited %>%
+  select(class, starts_with('sf')) %>%
+  add_prop_miss() %>%
+  aov(prop_miss_all ~ class, data = .)
+
+summary(anova)
+```
+```{r}
+TukeyHSD(anova)
+```
+
+## Fit predictive models again limiting to participants with 1-year follow-up CO values
+
+```{r}
+set.seed(42)
+
+source("../R/models/predict_class_ordinal.R")
+load("../data/predicted/lca3_predict.rda")
+load("../data/processed/pred_imputedord.rda")
+```
+
+
+```{r}
+df <- join_lca(
+  model_traj_df, 
+  pred_imputed %>%
+    filter(!is.na(co_1year))
+  )
+
+df_split <- initial_split(df, prop = 0.8)
+train <- training(df_split)
+test <- testing(df_split)
+
+train_split <- split_df(train)
+test_split <- split_df(test)
+```
+
+```{r}
+df %>%
+  group_by(class) %>%
+  count()
+```
+
+
+
+```{r}
+all_cores <- parallel::detectCores(logical = FALSE)
+cl <- makePSOCKcluster(all_cores)
+registerDoParallel(cl)
+imputed_fits <- fit_procedure(train_split, test_split)
+```
+
+```{r}
+metrics <- data.frame()
+coefs <- data.frame()
+rocs <- data.frame()
+options(scipen = 999)
+for (f in 1:length(imputed_fits)) {
+  # enet metrics
+  nme <- names(imputed_fits[f])
+  cv_auc_mean <- imputed_fits[[f]]$cv$cv_metrics$mean[2]
+  cv_auc_se <- imputed_fits[[f]]$cv$cv_metrics$std_err[2]
+  test_auc <- imputed_fits[[f]]$test_score$.estimate
+  null_auc_mean <- mean(imputed_fits[[f]]$null_aucs)
+  # mw_u_u <- imputed_fits[[f]]$mw_u$u
+  mw_u_p <- imputed_fits[[f]]$mw_u$p
+  
+  tmp <- data.frame(nme, cv_auc_mean, cv_auc_se, test_auc, null_auc_mean, mw_u_p)
+  metrics <- rbind(metrics, tmp)
+  
+  roc_tmp <- imputed_fits[[f]]$test_roc
+  roc_tmp$model <- nme
+  rocs <- rbind(rocs, roc_tmp)
+}
+```
+
+
+```{r}
+source("../R/models/predict_class_results_ord.R")
+source("../R/visualization/visualize.R")
+
+metrics
+```
+
+
+```{r}
+cv_coef <- gather_cv_coef(imputed_fits, use_ref = FALSE)
+feature_imp(cv_coef$cv_coefs_long, use_ref = FALSE)
+ggsave("../reports/figures/review/class_pred_onlyco.png", dpi='retina')
+```
+
+```{r}
+source("../R/models/smoking_cessation_logistic.R")
+
+  
+pred_set <- pred_imputed %>%
+              filter(!is.na(co_1year)) %>%
+              build_predictor_set(model_traj_df)
+
+has_class <- pred_set$has_class
+has_co <- pred_set$has_co
+
+quit_set <- impose_quit(has_class) %>% select(-co_1year)
+
+# main
+
+quit_split <- initial_split(quit_set, prop = 0.8, strata = "quit_verified")
+quit_train <- training(quit_split)
+quit_test <- testing(quit_split)
+
+quit_fit <- fit_procedure(quit_train, quit_test)
+```
+
+
+```{r}
+source("../R/models/smoking_cessation_results_logistic.R")
+
+metrics <- data.frame()
+rocs <- data.frame()
+
+for (f in 1:length(quit_fit)) {
+  
+  # elastic net results
+  nme <- names(quit_fit[f])
+  cv_roc_mean <- mean(quit_fit[[f]]$cv$cv_metrics$mean)
+  cv_roc_se <- sd(quit_fit[[f]]$cv$cv_metrics$std_err)
+  test_auc <- quit_fit[[f]]$test_score$.estimate
+  auc_pval <- quit_fit[[f]]$auc_pval
+  
+  tmp <- data.frame(nme, cv_roc_mean, cv_roc_se, test_auc, auc_pval)
+  names(tmp)[names(tmp) == ".estimate"] <- "test_auc"
+  metrics <- rbind(metrics, tmp)
+  
+  }
+
+cv_coef <- gather_cv_coef(quit_fit, use_ref = FALSE)
+```
+
+
+
+```{r}
+cv_coef <- gather_cv_coef(quit_fit, use_ref = FALSE)
+cv_coefs_long <- cv_coef$cv_coefs_long %>% filter(!stringr::str_detect(model, "Within|Latent Class Alone"))
+ggsave("../reports/figures/review/quit_pred_onlyco.png", dpi='retina')
+# feature_imp(cv_coefs_long) + 
+#   scale_color_brewer(palette = "Set2")
+```
+
+

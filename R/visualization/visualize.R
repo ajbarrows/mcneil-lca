@@ -41,6 +41,22 @@ time_point_normality <- function(df_lca, n_values) {
   return(p)
 }
 
+goodness_of_fit_df <- function(mod_list) {
+  df <- data.frame("BIC" = NA, "AIC" = NA, "class" = NA)
+  
+  for (i in 1:length(mod_list)) {
+    tmp <- data.frame(
+      "BIC" = mod_list[[i]]$BIC,
+      "AIC" = mod_list[[i]]$AIC,
+      "class" = i)
+    
+    df <- rbind(df, tmp)
+    
+  }
+  return(df %>% tidyr::drop_na())
+}
+
+
 plot_bic <- function(bic_df) {
   bic_df %>%
     mutate(class = factor(class)) %>%
@@ -414,6 +430,7 @@ count_quit <- function(full_fit, quit_threshold = 6) {
 feature_imp <- function(cv_coefs_long, use_ref = TRUE, dashline = 1) {
   fill_values <- c(
     "Class 1 vs. All" = "#F8766D", 
+    "Class 1 vs. All (Placebo NRT Only)" = "grey",
     "Class 2 vs. All" = "#00BA38", 
     "Class 3 vs. All" = "#619CFF",
     "Class 1 vs. Class 2" = "#C77CFF"
@@ -421,8 +438,13 @@ feature_imp <- function(cv_coefs_long, use_ref = TRUE, dashline = 1) {
   
   plt_df <- cv_coefs_long %>% 
     filter(term != "(Intercept)" | is.na(term)) %>%
-    filter(!is.na(feature))
-  
+    filter(!is.na(feature)) %>%
+    mutate(
+      model=forcats::fct_recode(
+        model, 
+        "Class 1 vs. All\n(Placebo NRT Only)"="Class 1 vs. All (Placebo NRT Only)")
+    )
+
   plt <- plt_df %>%
     ggplot(aes(y = level, x = mean_est, color = model)) +
     geom_pointrange(
@@ -456,7 +478,9 @@ feature_imp <- function(cv_coefs_long, use_ref = TRUE, dashline = 1) {
       y = "", 
       x = "Average Feature Importance",
       color = ""
-    ) 
+    ) +
+    xlim(c(-1, 3))
+    # scale_x_continuous(breaks=scales::pretty_breaks())
   
   plt
   

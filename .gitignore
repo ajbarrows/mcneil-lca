@@ -1,3 +1,4 @@
+
 # History files
 .Rhistory
 .Rapp.history
@@ -45,16 +46,11 @@ data/**
 
 # Project files
 models/**
-!models/**/
-!models/**/.gitignore
 
-#reports/**
-!reports/**/
-!reports/**/.gitignore
+reports/**
 
-#notebooks/**
-#!notebooks/**/
-#!notebooks/**/.gitignore
+notebooks/**
+!notebooks/20250623-Review.Rmd
 
 #MacOS
 .DS_Store

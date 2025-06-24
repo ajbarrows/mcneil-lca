@@ -124,6 +124,12 @@ gather_cv_coef <- function(imputed_fits, site = NULL, use_ref = TRUE,
     stringsAsFactors = FALSE
   )
   
+  dummy_lca <- read.csv(
+    "../data/dummy_lca.csv",
+    stringsAsFactors = FALSE
+  )
+  
+
   cv_coefs <- data.frame()
   for (m in 1:length(imputed_fits)) {
     cv_models <- imputed_fits[[m]]$cv$cv_models
@@ -140,7 +146,7 @@ gather_cv_coef <- function(imputed_fits, site = NULL, use_ref = TRUE,
       mutate(estimate = exp(estimate))
   }
   
-  levels <- c("Class 1 vs. All", "Class 2 vs. All", "Class 3 vs. All", "Class 1 vs. All\n(Placebo NRT Only)")
+  levels <- c("Class 1 vs. All", "Class 1 vs. All (Placebo NRT Only)", "Class 2 vs. All", "Class 3 vs. All")
   
   cv_coefs_long <- cv_coefs %>%
     filter(!model %in% c("c12_fit", "c13_fit", "c23_fit")) %>%
@@ -151,24 +157,24 @@ gather_cv_coef <- function(imputed_fits, site = NULL, use_ref = TRUE,
         model == "c1_fit" ~ "Class 1 vs. All",
         model == "c2_fit" ~ "Class 2 vs. All",
         model == "c3_fit" ~ "Class 3 vs. All",
-        model == "nonrt_fit" ~ "Class 1 vs. All\n(Placebo NRT Only)"
+        model == "nonrt_fit" ~ "Class 1 vs. All (Placebo NRT Only)"
         # model == "c12_fit" ~ "Class 1 vs. Class 2"
       ),
-      model = factor(model, levels = levels)
     ) %>%
-    left_join(term_feature, by = "term")
-  
+    left_join(term_feature, by = "term") %>%
+    rbind(dummy_lca) %>%
+    mutate(model = factor(model, levels = levels))
+    print(str(cv_coefs_long))
   if (use_ref) {
     cv_coefs_long <- cv_coefs_long %>% rbind(reference)
   }
-  cv_ceofs_long <- cv_coefs_long %>%
+  cv_coefs_long <- cv_coefs_long %>%
     mutate(
       feature = as.factor(feature),
       level = factor(level, levels = c(level_order$levels, ""))
     ) %>%
     arrange(model, feature, level)
 
-  
   cv_coefs_long$level[is.na(cv_coefs_long$level)] <- ""
   
   if (use_site) {
@@ -193,7 +199,7 @@ if (sys.nframe() == 0) {
   
   # imputed ----- 
   
-  enet_results(imputed_fits, "../reports/figures/ord/", "enet_imputed")
+  # enet_results(imputed_fits, "../reports/figures/ord/", "enet_imputed")
   
   metrics <- data.frame()
   coefs <- data.frame()
@@ -212,16 +218,9 @@ if (sys.nframe() == 0) {
     tmp <- data.frame(nme, cv_auc_mean, cv_auc_se, test_auc, null_auc_mean, mw_u_p)
     metrics <- rbind(metrics, tmp)
     
-    # ols coefficients
-    # 
-    # coefs_df <- tidy(imputed_fits[[f]]$log_fit, exponentiate = TRUE, conf.int = TRUE)
-    # coefs_df$model <- nme
-    # 
-    # coefs <- rbind(coefs, coefs_df)
     roc_tmp <- imputed_fits[[f]]$test_roc
     roc_tmp$model <- nme
     rocs <- rbind(rocs, roc_tmp)
-    
   }
   
   
@@ -237,9 +236,8 @@ if (sys.nframe() == 0) {
   
   cv_coef <- gather_cv_coef(imputed_fits, use_ref = FALSE)
   
-  
   feature_imp(cv_coef$cv_coefs_long, use_ref = FALSE)
-  ggsave("../reports/figures/ord/predict_class_features.png", width=10, units='in')
+  ggsave("../reports/figures/ord/predict_class_features.svg", width=10, units='in')
   write.csv(cv_coef$cv_coefs_long, '../data/model_output/class_coefs.csv', row.names = FALSE)
   
   

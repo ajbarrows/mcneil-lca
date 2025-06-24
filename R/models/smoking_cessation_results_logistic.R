@@ -140,53 +140,16 @@ if (sys.nframe() == 0) {
     names(tmp)[names(tmp) == ".estimate"] <- "test_auc"
     metrics <- rbind(metrics, tmp)
     
-    
-    # 
-    # t <- quit_fit[[f]]$test_preds %>%
-    #   select(truth = quit_verified, estimate = .pred)
-    # 
-    # for (thresh in seq(0, 100, by = 1)) {
-    #   
-    #   t <- arrange(t, truth)
-    #   
-    #   # actually quit based on threshold
-    #   t$quit_actual <- t$truth <= thresh
-    #   
-    #   # predicted quit based on threshold
-    #   t$quit_test <- round(t$estimate) <= thresh
-    #   
-    #   # labeling
-    #   t$tp <- t$quit_actual & t$quit_test
-    #   t$fp <- !t$quit_actual & t$quit_test
-    #   t$fn <- t$quit_actual & !t$quit_test
-    #   t$tn <- !t$quit_actual & !t$quit_test
-    #   
-    #   
-    #   tpr <- sum(t$tp) / sum(t$tp, t$fn)
-    #   tnr <- sum(t$tn) / sum(t$fp, t$tn)
-    #   
-    #   fpr <- 1 - tnr
-    #   
-    #   tmp_df <- data.frame(thresh, tpr, fpr, nme, sum(t$tp), sum(t$fp), sum(t$fn), sum(t$tn))
-    #   rocs <- rbind(rocs, tmp_df)
-    # }
-    
-    
   }
   
 
-  # 
-  # t <- cv_coef$cv_coefs_long %>%
-  #   mutate(
-  #     mean_odds = exp(mean_est),
-  #     sd_odds = exp(sd_est))
-  
+
   
   cv_coefs_long <- cv_coef$cv_coefs_long %>% filter(!stringr::str_detect(model, "Within|Latent Class Alone"))
   write.csv(cv_coefs_long, '../data/model_output/cessation_coefs.csv', row.names = FALSE)
   feature_imp(cv_coefs_long) + 
     scale_color_brewer(palette = "Set2")
-  ggsave(paste0(fig_path, "predict_quit_features.png"), width=10, units='in')
+  ggsave(paste0(fig_path, "predict_quit_features.svg"), width=7, units='in')
   
   # write.csv(cv_coefs, "../reports/tables/co_predict_coef.csv", row.names = FALSE)
   # select best model
