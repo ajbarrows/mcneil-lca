@@ -8,6 +8,34 @@ load("../data/processed/pred_imputedord.rda")
 load("../data/processed/pred_nomissord.rda")
 load("../data/predicted/lca3_predict.rda")
 
+
+predictors <- c(
+  'site',
+  'trt_recode',
+  'sex',
+  'age',
+  'ftnd',
+  'co',
+  'sf_physheal',
+  'sf_emoprob',
+  'sf_socfunc',
+  'sf_pain',
+  'sf_emowell',
+  'longest_period_wo_smoking',
+  'age_started_smoking',
+  'n_quit_attempts',
+  'ts_last_quit_attempt',
+  'anxiety',
+  'depression',
+  'int_to_quit',
+  'rsq_calming',
+  'rsq_last_cig_exp',
+  'rsq_pepping_up_eff',
+  'avg_cpd'
+)
+
+
+
 set.seed(42)
 # 
 # doParallel::registerDoParallel()
@@ -29,9 +57,9 @@ split_df <- function(df_joined) {
   # not the most elegant code, but it's explicit
   
   # select_vars
-  df_joined <- df_joined %>%
-    select(-c(co_1year, avg_cpd_1year))
-  
+  # df_joined <- df_joined %>%
+  #   select(-c(co_1year, avg_cpd_1year))
+  # 
   # make one-hot encodings for class
   df_joined <- df_joined %>% mutate(class = as.factor(class))
   class_map <- df_joined %>% select(subject_id, class)
@@ -155,7 +183,7 @@ prepare_data <- function(train, test) {
   # use mean/variance from training data for centering
   test <- bake(enet_recipe, new_data = test)
   
-  print(summary(enet_recipe))
+  print(summary(enet_recipe), n=50)
   print(enet_recipe)
   
   list(
@@ -403,7 +431,9 @@ fit_procedure <- function(train_splits, test_splits) {
 # main --- 
 m3_class_df <- model_traj_df
 
-df_imputed <- join_lca(m3_class_df, pred_imputed)
+df_imputed <- join_lca(m3_class_df, pred_imputed) %>%
+  select(subject_id, class, all_of(predictors))
+
 df_imputed_split <- initial_split(df_imputed, prop = 0.8)
 imputed_train <- training(df_imputed_split)
 imputed_test <- testing(df_imputed_split)

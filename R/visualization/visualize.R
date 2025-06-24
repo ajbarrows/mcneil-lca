@@ -449,7 +449,8 @@ feature_imp <- function(cv_coefs_long, use_ref = TRUE, dashline = 1) {
     ggplot(aes(y = level, x = mean_est, color = model)) +
     geom_pointrange(
       aes(xmin = mean_est - sd_est, xmax = mean_est + sd_est),
-      show.legend = FALSE
+      show.legend = FALSE,
+      size=.25
     ) 
   
   if (use_ref) {

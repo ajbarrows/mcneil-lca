@@ -3,6 +3,30 @@ library(tictoc)
 library(doParallel)
 
 
+predictors <- c(
+  'site',
+  'trt_recode',
+  'sex',
+  'age',
+  'ftnd',
+  'co',
+  'sf_physheal',
+  'sf_emoprob',
+  'sf_socfunc',
+  'sf_pain',
+  'sf_emowell',
+  'longest_period_wo_smoking',
+  'age_started_smoking',
+  'n_quit_attempts',
+  'ts_last_quit_attempt',
+  'anxiety',
+  'depression',
+  'int_to_quit',
+  'rsq_calming',
+  'rsq_last_cig_exp',
+  'rsq_pepping_up_eff',
+  'avg_cpd'
+)
 
 # functions --- 
 
@@ -20,9 +44,9 @@ split_df <- function(df_joined) {
   # not the most elegant code, but it's explicit
   
   # select_vars
-  df_joined <- df_joined %>%
-    select(-c(co_1year, avg_cpd_1year, quit))
-  
+  # df_joined <- df_joined %>%
+  #   select(-c(co_1year, avg_cpd_1year, quit))
+  # 
   # make one-hot encodings for class
   df_joined <- df_joined %>% mutate(class = as.factor(class))
   class_map <- df_joined %>% select(subject_id, class)
@@ -132,7 +156,7 @@ nested_cv_enet <- function(train, n_outer_folds = 5, n_inner_folds = 5) {
 }
 
 
-prepare_data <- function(train, test, site_included = TRUE, trt_included = TRUE) {
+prepare_data <- function(train, test) {
   
   enet_recipe <-
     recipe(class ~ ., data = train) %>%
@@ -140,16 +164,15 @@ prepare_data <- function(train, test, site_included = TRUE, trt_included = TRUE)
     step_bin2factor(all_outcomes(), ref_first = FALSE) %>%
     step_normalize(all_numeric_predictors())
   
-  if (site_included) {
+  if ('site' %in% names(train)) {
     enet_recipe <- enet_recipe %>%
       step_relevel(site, ref_level = "usa")
     
   }
-
   enet_recipe <- enet_recipe %>%
     step_relevel(sex, ref_level = "FEMALE")
   
-  if (trt_included) {
+  if ('trt_recode' %in% names(train)) {
     enet_recipe <- enet_recipe %>%
       step_relevel(trt_recode, ref_level = "placebo")
   }
@@ -323,11 +346,11 @@ enet_fit <- function(data, penalty, mixture, permute_null = FALSE) {
   )
 }
 
-enet_pipeline <- function(train, test, trt_included = TRUE) {
+enet_pipeline <- function(train, test) {
   # pipeline
   tic()
 
-  dta <- prepare_data(train, test, trt_included = trt_included)
+  dta <- prepare_data(train, test)
   train <- dta$train
   test <- dta$test
   
@@ -397,8 +420,12 @@ fit_procedure <- function(train_splits, test_splits) {
   c12_fit <- enet_pipeline(train_splits$class12, test_splits$class12)
   c13_fit <- enet_pipeline(train_splits$class13, test_splits$class13)
   c23_fit <- enet_pipeline(train_splits$class23, test_splits$class23)
-  
-  nonrt_fit <- enet_pipeline(train_splits$nonrt, test_splits$nonrt, trt_included = FALSE)
+
+  if ('site' %in% names(train_splits$nonrt)) {
+    nonrt_fit <- NULL
+  } else {
+    nonrt_fit <- enet_pipeline(train_splits$nonrt, test_splits$nonrt)
+  }
   
   list(
     "c1_fit" = c1_fit,
@@ -409,6 +436,7 @@ fit_procedure <- function(train_splits, test_splits) {
     "c23_fit" = c23_fit,
     "nonrt_fit" = nonrt_fit
   )
+  
 }
 
 
@@ -431,7 +459,9 @@ if (sys.nframe() == 0) {
   # main --- 
   m3_class_df <- model_traj_df
   
-  df_imputed <- join_lca(m3_class_df, pred_imputed)
+  df_imputed <- join_lca(m3_class_df, pred_imputed) %>%
+    select(subject_id, class, all_of(predictors))
+
   df_imputed_split <- initial_split(df_imputed, prop = 0.8)
   imputed_train <- training(df_imputed_split)
   imputed_test <- testing(df_imputed_split)
@@ -490,7 +520,7 @@ if (sys.nframe() == 0) {
   # save(swi, file = "../models/predict_class_swi.rda")
   # save(den, file = "../models/predict_class_den.rda")
   # save(ger, file = "../models/predict_class_ger.rda")
-  
+
 }
 
 

@@ -3,6 +3,33 @@ library(tidymodels)
 library(tictoc)
 library(doParallel)
 
+predictors <- c(
+  'class',
+  'site',
+  'trt_recode',
+  'sex',
+  'age',
+  'ftnd',
+  'co',
+  'sf_physheal',
+  'sf_emoprob',
+  'sf_socfunc',
+  'sf_pain',
+  'sf_emowell',
+  'longest_period_wo_smoking',
+  'age_started_smoking',
+  'n_quit_attempts',
+  'ts_last_quit_attempt',
+  'anxiety',
+  'depression',
+  'int_to_quit',
+  'rsq_calming',
+  'rsq_last_cig_exp',
+  'rsq_pepping_up_eff',
+  'avg_cpd'
+)
+
+
 load("../data/processed/pred_imputedord.rda")
 load("../data/predicted/lca3_predict.rda")
 
@@ -441,7 +468,8 @@ quit_set <- impose_quit(has_class)
 # summarize quit counts
 summarize_followup(quit_set)
 
-quit_set <- quit_set %>% select(-co_1year)
+quit_set <- quit_set %>% 
+  select(quit_verified, all_of(predictors))
 
 # main
 

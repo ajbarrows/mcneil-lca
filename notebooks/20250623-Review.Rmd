@@ -244,7 +244,7 @@ metrics
 ```{r}
 cv_coef <- gather_cv_coef(imputed_fits, use_ref = FALSE)
 feature_imp(cv_coef$cv_coefs_long, use_ref = FALSE)
-ggsave("../reports/figures/review/class_pred_onlyco.png", dpi='retina')
+ggsave("../reports/figures/review/class_pred_onlyco.png", height=8, dpi='retina')
 ```
 
 ```{r}
@@ -294,14 +294,119 @@ for (f in 1:length(quit_fit)) {
 cv_coef <- gather_cv_coef(quit_fit, use_ref = FALSE)
 ```
 
+```{r}
+metrics
+```
 
 
 ```{r}
 cv_coef <- gather_cv_coef(quit_fit, use_ref = FALSE)
 cv_coefs_long <- cv_coef$cv_coefs_long %>% filter(!stringr::str_detect(model, "Within|Latent Class Alone"))
-ggsave("../reports/figures/review/quit_pred_onlyco.png", dpi='retina')
-# feature_imp(cv_coefs_long) + 
-#   scale_color_brewer(palette = "Set2")
+feature_imp(cv_coefs_long) + 
+  scale_color_brewer(palette = "Set2")
+
+
+ggsave("../reports/figures/review/quit_pred_onlyco.png", width=6, height=8, dpi='retina')
+
 ```
 
+```{r}
+cv_coefs_long
+```
+
+## Address site differences in cessation prediction
+
+```{r}
+source("../R/models/smoking_cessation_logistic.R")
+```
+
+```{r}
+pred_set <- pred_imputed %>%
+              filter(site != 'usa') %>%
+              build_predictor_set(model_traj_df)
+
+has_class <- pred_set$has_class
+has_co <- pred_set$has_co
+
+quit_set <- impose_quit(has_class) %>% select(-co_1year)
+
+# main
+
+quit_split <- initial_split(quit_set, prop = 0.8, strata = "quit_verified")
+quit_train <- training(quit_split)
+quit_test <- testing(quit_split)
+
+quit_fit <- fit_procedure(quit_train, quit_test, site_ref='aus')
+```
+
+```{r}
+
+metrics <- data.frame()
+rocs <- data.frame()
+
+for (f in 1:length(quit_fit)) {
+  
+  # elastic net results
+  nme <- names(quit_fit[f])
+  cv_roc_mean <- mean(quit_fit[[f]]$cv$cv_metrics$mean)
+  cv_roc_se <- sd(quit_fit[[f]]$cv$cv_metrics$std_err)
+  test_auc <- quit_fit[[f]]$test_score$.estimate
+  auc_pval <- quit_fit[[f]]$auc_pval
+  
+  tmp <- data.frame(nme, cv_roc_mean, cv_roc_se, test_auc, auc_pval)
+  names(tmp)[names(tmp) == ".estimate"] <- "test_auc"
+  metrics <- rbind(metrics, tmp)
+  
+  }
+
+cv_coef <- gather_cv_coef(quit_fit, use_ref = FALSE)
+```
+
+```{r}
+metrics
+```
+
+```{r}
+cv_coefs_long <- cv_coef$cv_coefs_long %>% filter(!stringr::str_detect(model, "Within|Latent Class Alone"))
+feature_imp(cv_coefs_long) + 
+  scale_color_brewer(palette = "Set2")
+
+
+ggsave("../reports/figures/review/quit_pred_nousa.png", width=6, height=8, dpi='retina')
+```
+
+
+```{r}
+cv_coefs_long
+
+```
+
+
+## Updated table one
+
+
+```{r}
+full <- df %>%
+  filter(visit == 'baseline') %>%
+  select(-c(visit, visit_date, cpw, cpm))
+  
+```
+
+```{r}
+# tableone::CreateTableOne(vars = names(full %>% select(-subject_id)), data=full)
+```
+
+```{r}
+by_class <- m3_class_df %>%
+  distinct(subject_id, .keep_all = TRUE) %>%
+  select(subject_id, class) %>%
+  left_join(full, by = 'subject_id')
+
+# tableone::CreateTableOne(vars = names(by_class %>% select(-subject_id)), data=by_class)
+```
+
+```{r}
+tab <-tableone::CreateTableOne(vars = names(by_class %>% select(-subject_id)), strata='class', test=FALSE, data=by_class)
+print(tab, quote = FALSE, noSpaces = TRUE)
+```
 

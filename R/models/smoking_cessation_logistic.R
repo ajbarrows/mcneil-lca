@@ -4,6 +4,33 @@ library(tictoc)
 library(doParallel)
 
 
+predictors <- c(
+  'class',
+  'site',
+  'trt_recode',
+  'sex',
+  'age',
+  'ftnd',
+  'co',
+  'sf_physheal',
+  'sf_emoprob',
+  'sf_socfunc',
+  'sf_pain',
+  'sf_emowell',
+  'longest_period_wo_smoking',
+  'age_started_smoking',
+  'n_quit_attempts',
+  'ts_last_quit_attempt',
+  'anxiety',
+  'depression',
+  'int_to_quit',
+  'rsq_calming',
+  'rsq_last_cig_exp',
+  'rsq_pepping_up_eff',
+  'avg_cpd'
+)
+
+
 impose_quit <- function(df, quit_thresh = 6) {
   df <- df %>%
     mutate(quit_verified = case_when(
@@ -82,7 +109,7 @@ summarize_followup <- function(quit_set) {
   }
 }
 
-prepare_data <- function(train, test) {
+prepare_data <- function(train, test, site_ref='usa') {
   # create recipe with training data
 
   enet_recipe <-
@@ -91,7 +118,7 @@ prepare_data <- function(train, test) {
   if ("site" %in% names(train)) {
     enet_recipe <-
       enet_recipe %>%
-      step_relevel(site, ref_level = "usa") %>%
+      step_relevel(site, ref_level = site_ref) %>%
       step_relevel(trt_recode, ref_level = "placebo") %>%
       step_relevel(sex, ref_level = "FEMALE")
   }
@@ -302,11 +329,11 @@ enet_fit <- function(data, penalty, mixture, permute_null = FALSE) {
     "workflow" = enet_workflow
   )
 }
-enet_pipeline <- function(train, test) {
+enet_pipeline <- function(train, test, site_ref='usa') {
   # pipeline
   tic()
   
-  dta <- prepare_data(train, test)
+  dta <- prepare_data(train, test, site_ref=site_ref)
   train <- dta$train
   test <- dta$test
   
@@ -374,7 +401,7 @@ enet_pipeline <- function(train, test) {
   )
 }
 
-fit_procedure <- function(train, test) {
+fit_procedure <- function(train, test, site_ref='usa') {
   
   # only class
   onlyclass_train <- train %>% select(class, quit_verified)
@@ -394,9 +421,9 @@ fit_procedure <- function(train, test) {
   c3_train <- train %>% filter(class == 3) %>% select(-class)
   c3_test <- test %>% filter(class == 3) %>% select(-class)
   
-  full_fit <- enet_pipeline(train, test)
-  noclass_fit <- enet_pipeline(noclass_train, noclass_test)
-  onlyclass_fit <- enet_pipeline(onlyclass_train, onlyclass_test)
+  full_fit <- enet_pipeline(train, test, site_ref=site_ref)
+  noclass_fit <- enet_pipeline(noclass_train, noclass_test, site_ref=site_ref)
+  onlyclass_fit <- enet_pipeline(onlyclass_train, onlyclass_test, site_ref=site_ref)
   c1_fit <- enet_pipeline(c1_train, c1_test)
   c2_fit <- enet_pipeline(c2_train, c2_test)
   c3_fit <- enet_pipeline(c3_train, c3_test)
@@ -438,7 +465,12 @@ if (sys.nframe() == 0) {
   # summarize quit counts
   summarize_followup(quit_set)
   
-  quit_set <- quit_set %>% select(-co_1year)
+  # quit_set <- quit_set %>% 
+  #   select(-co_1year)
+
+  
+  quit_set <- quit_set %>% 
+    select(quit_verified, all_of(predictors))
   
   # main
   
