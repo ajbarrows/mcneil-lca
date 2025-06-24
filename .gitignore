@@ -42,12 +42,15 @@ vignettes/*.pdf
 
 # Data files
 data/**
+!data/.gitignore
 
 
 # Project files
 models/**
+!models/.gitignore
 
 reports/**
+!reports/.gitignore
 
 notebooks/**
 !notebooks/20250623-Review.Rmd
