@@ -60,3 +60,5 @@ notebooks/**
 
 # Any folder with .gitignore
 !.gitkeep
+
+references

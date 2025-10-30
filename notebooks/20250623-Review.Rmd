@@ -4,12 +4,14 @@ output: html_notebook
 ---
 
 ```{r}
-source("../R/visualization/visualize.R")
+source("./R/visualization/visualize.R")
 library(lcmm)
+library(dplyr)
+library(ggplot2)
 # 
-load("../data/interim/compiled_data.rda")
+load("./data/interim/compiled_data.rda")
 
-load("../data/processed/smoking_traj_nondrop.rda")
+load("./data/processed/smoking_traj_nondrop.rda")
 
 ```
 
@@ -98,15 +100,15 @@ mods_nomiss <- fit_model(traj_nondrop)
 
 
 ```{r}
-bic_df <- goodness_of_fit_df(mods_nomiss)
-bic <- plot_bic(bic_df)
-bic
+# bic_df <- goodness_of_fit_df(mods_nomiss)
+# bic <- plot_bic(bic_df)
+# bic
 ```
 
 ```{r}
 model_traj <- merge_class(mods_nomiss[[3]], traj_nondrop)
-plot_trajectories(traj_nondrop, model_traj, n_classes = m$ng)
-ggsave("../reports/figures/review/nomiss_threeclass.png", dpi='retina')
+# plot_trajectories(traj_nondrop, model_traj, n_classes = m$ng)
+# ggsave("../reports/figures/review/nomiss_threeclass.png", dpi='retina')
 ```
 
 
@@ -125,7 +127,6 @@ full_df <- model_traj$df %>%
 
 full_df
 ```
-
 
 
 ```{r}
@@ -151,8 +152,14 @@ gg_miss_fct(
     title = "Missingness by Class",
     fill = "% Missing"
   )
-ggsave("../reports/figures/review/missingness_class.png", dpi='retina')
+# ggsave("../reports/figures/review/missingness_class.png", dpi='retina')
 ```
+
+```{r}
+# miss_var_summary(df)
+df %>% filter(visit == "baseline") %>% miss_var_summary()
+```
+
 
 
 ```{r}
@@ -172,10 +179,20 @@ TukeyHSD(anova)
 ```{r}
 set.seed(42)
 
-source("../R/models/predict_class_ordinal.R")
-load("../data/predicted/lca3_predict.rda")
-load("../data/processed/pred_imputedord.rda")
+source("./R/models/predict_class_ordinal.R")
+load("./data/predicted/lca3_predict.rda")
+load("./data/processed/pred_imputedord.rda")
 ```
+
+```{r}
+full_df %>% filter(subject_id %in% model_traj_df$subject_id)
+```
+
+
+```{r}
+miss_var_summary(full_df %>% filter(subject_id %in% model_traj_df$subject_id))
+```
+
 
 
 ```{r}
@@ -205,10 +222,11 @@ df %>%
 all_cores <- parallel::detectCores(logical = FALSE)
 cl <- makePSOCKcluster(all_cores)
 registerDoParallel(cl)
-imputed_fits <- fit_procedure(train_split, test_split)
+# imputed_fits <- fit_procedure(train_split, test_split)
 ```
 
 ```{r}
+
 metrics <- data.frame()
 coefs <- data.frame()
 rocs <- data.frame()
@@ -340,7 +358,6 @@ quit_fit <- fit_procedure(quit_train, quit_test, site_ref='aus')
 ```
 
 ```{r}
-
 metrics <- data.frame()
 rocs <- data.frame()
 
@@ -392,12 +409,13 @@ full <- df %>%
   
 ```
 
+
 ```{r}
 # tableone::CreateTableOne(vars = names(full %>% select(-subject_id)), data=full)
 ```
 
 ```{r}
-by_class <- m3_class_df %>%
+by_class <- model_traj_df %>%
   distinct(subject_id, .keep_all = TRUE) %>%
   select(subject_id, class) %>%
   left_join(full, by = 'subject_id')
@@ -406,7 +424,344 @@ by_class <- m3_class_df %>%
 ```
 
 ```{r}
+by_class %>% 
+  group_by(site) %>%
+  count(n_quit_attempts) %>%
+  tidyr::pivot_wi
+```
+
+
+```{r}
 tab <-tableone::CreateTableOne(vars = names(by_class %>% select(-subject_id)), strata='class', test=FALSE, data=by_class)
 print(tab, quote = FALSE, noSpaces = TRUE)
 ```
 
+
+
+## Sensitivity Analysis -- full pipe without never-quitters
+
+
+
+```{r}
+quit_before <- df %>% filter(n_quit_attempts_numeric > 0)
+
+```
+
+```{r}
+load("../data/processed/smoking_traj.rda")
+
+lca_hasquit <- traj %>%
+  filter(subject_id %in% quit_before$subject_id) %>%
+  fit_model()
+```
+
+
+```{r}
+bic_df <- goodness_of_fit_df(lca_hasquit)
+bic <- plot_bic(bic_df)
+bic
+```
+
+
+
+```{r}
+model_traj <- merge_class(lca_hasquit[[3]], traj)
+plot_trajectories(traj, model_traj, n_classes = 3)
+ggsave("../reports/figures/review/hadquit_threeclass.png", dpi='retina')
+```
+
+
+```{r}
+df
+```
+
+
+```{r}
+source("../R/models/predict_class_ordinal.R")
+load("../data/processed/pred_imputedord.rda")
+
+df <- join_lca(
+  model_traj$df, 
+  pred_imputed %>%
+    filter(subject_id %in% model_traj$df$subject_id)
+  ) %>%
+  select(subject_id, class, all_of(predictors))
+
+df_split <- initial_split(df, prop = 0.8)
+train <- training(df_split)
+test <- testing(df_split)
+
+train_split <- split_df(train)
+test_split <- split_df(test)
+
+all_cores <- parallel::detectCores(logical = FALSE)
+cl <- makePSOCKcluster(all_cores)
+registerDoParallel(cl)
+imputed_fits <- fit_procedure(train_split, test_split)
+```
+
+
+```{r}
+metrics <- data.frame()
+coefs <- data.frame()
+rocs <- data.frame()
+options(scipen = 999)
+for (f in 1:(length(imputed_fits) - 1)) {
+  # enet metrics
+  nme <- names(imputed_fits[f])
+  cv_auc_mean <- imputed_fits[[f]]$cv$cv_metrics$mean[2]
+  cv_auc_se <- imputed_fits[[f]]$cv$cv_metrics$std_err[2]
+  test_auc <- imputed_fits[[f]]$test_score$.estimate
+  null_auc_mean <- mean(imputed_fits[[f]]$null_aucs)
+  # mw_u_u <- imputed_fits[[f]]$mw_u$u
+  mw_u_p <- imputed_fits[[f]]$mw_u$p
+
+  tmp <- data.frame(nme, cv_auc_mean, cv_auc_se, test_auc, null_auc_mean, mw_u_p)
+  metrics <- rbind(metrics, tmp)
+
+  roc_tmp <- imputed_fits[[f]]$test_roc
+  roc_tmp$model <- nme
+  rocs <- rbind(rocs, roc_tmp)
+}
+
+metrics
+```
+
+
+
+
+
+```{r}
+source("../R/models/predict_class_results_ord.R")
+source("../R/visualization/visualize.R")
+
+
+cv_coef <- gather_cv_coef(imputed_fits, use_ref = FALSE)
+feature_imp(cv_coef$cv_coefs_long, use_ref = FALSE)
+ggsave("../reports/figures/review/class_pred_hasquit.png", height=8, dpi='retina')
+
+```
+
+```{r}
+pred_set
+```
+
+
+```{r}
+source("../R/models/smoking_cessation_logistic.R")
+
+  
+pred_set <- pred_imputed %>%
+          filter(subject_id %in% model_traj$df$subject_id) %>%
+              build_predictor_set(model_traj$df)
+
+has_class <- pred_set$has_class
+has_co <- pred_set$has_co
+
+quit_set <- impose_quit(has_class) %>%
+  select(quit_verified, all_of(predictors))
+
+ quit_set <- quit_set %>% 
+    select(quit_verified, all_of(predictors))
+
+# main
+
+quit_split <- initial_split(quit_set, prop = 0.8, strata = "quit_verified")
+quit_train <- training(quit_split)
+quit_test <- testing(quit_split)
+
+quit_fit <- fit_procedure(quit_train, quit_test)
+```
+
+
+```{r}
+source("../R/models/smoking_cessation_results_logistic.R")
+
+metrics <- data.frame()
+rocs <- data.frame()
+
+for (f in 1:length(quit_fit)) {
+  
+  # elastic net results
+  nme <- names(quit_fit[f])
+  cv_roc_mean <- mean(quit_fit[[f]]$cv$cv_metrics$mean)
+  cv_roc_se <- sd(quit_fit[[f]]$cv$cv_metrics$std_err)
+  test_auc <- quit_fit[[f]]$test_score$.estimate
+  auc_pval <- quit_fit[[f]]$auc_pval
+  
+  tmp <- data.frame(nme, cv_roc_mean, cv_roc_se, test_auc, auc_pval)
+  names(tmp)[names(tmp) == ".estimate"] <- "test_auc"
+  metrics <- rbind(metrics, tmp)
+  
+  }
+
+cv_coef <- gather_cv_coef(quit_fit, use_ref = FALSE)
+
+cv_coefs_long <- cv_coef$cv_coefs_long %>% filter(!stringr::str_detect(model, "Within|Latent Class Alone"))
+feature_imp(cv_coefs_long) + 
+  scale_color_brewer(palette = "Set2")
+
+
+ggsave("../reports/figures/review/quit_pred_hasquit.png", width=6, height=8, dpi='retina')
+```
+
+
+```{r}
+metrics
+```
+
+
+
+
+
+## Second review -- use different testing/training splits
+
+
+```{r}
+source("./R/models/predict_class_results_ord.R")
+review_mod_path <- "./models/data_split_sensitivity.rds"
+fits <- readRDS(review_mod_path)
+```
+
+```{r}
+gather_cv_metrics <- function(fits) {
+  rename_list <- c(
+    "c1_fit" = "Latent Class 1",
+    "c2_fit" = "Latent Class 2",
+    "c3_fit" = "Latent Class 3"
+  )
+  
+  metrics <- data.frame()
+  coefs <- data.frame()
+
+  for (split_prop in names(fits)) {
+    
+    split <- fits[[split_prop]]
+
+    for (model_name in names(split)) {
+
+      model <- split[[model_name]]
+
+      metrics <- rbind(
+        metrics,
+        model$cv$cv_metrics %>%
+          select('roc_auc' = mean, fold) %>%
+          mutate(
+            train_split_prop = split_prop,
+            mod_name = stringr::str_replace_all(model_name, rename_list)
+          )
+      )
+    }
+      
+    cv_coef <- gather_cv_coef(split, use_ref = FALSE)$cv_coefs_long
+    coefs <- rbind(coefs, cv_coef)
+  }
+  list(
+    "metrics" = metrics,
+    "coefs" = coefs
+  )
+}
+
+metrics <- gather_cv_metrics(fits)
+metrics
+```
+
+
+```{r}
+
+```
+
+```{r}
+ggplot(metrics$metrics, aes(x = train_split_prop, y = roc_auc, color = mod_name, group = mod_name)) +
+  geom_point(show.legend = FALSE, alpha = 0.5) +
+  stat_summary(fun.data = mean_se, geom = "pointrange", show.legend = FALSE) +
+  stat_summary(fun = mean, geom = 'line', show.legend = FALSE) +
+  facet_wrap(~mod_name, ncol=1) +
+  theme_minimal(base_size = 13) +
+  labs(
+    x = "Proprtion of Data in Training Set",
+    y = "ROC AUC",
+    color = "Latent Class"
+  )
+
+  ggsave("./reports/figures/review/data_split_sensitivity.png", dpi = 'retina')
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+feature_imp <- function(cv_coefs_long, use_ref = TRUE, dashline = 1) {
+  fill_values <- c(
+    "Class 1 vs. All" = "#F8766D", 
+    "Class 1 vs. All (Placebo NRT Only)" = "grey",
+    "Class 2 vs. All" = "#00BA38", 
+    "Class 3 vs. All" = "#619CFF",
+    "Class 1 vs. Class 2" = "#C77CFF"
+  )
+  
+  plt_df <- cv_coefs_long %>% 
+    filter(term != "(Intercept)" | is.na(term)) %>%
+    filter(!is.na(feature)) %>%
+    filter(!stringr::str_detect(model, "Placebo")) %>%
+    filter(!stringr::str_detect(feature, "Latent"))
+
+
+  plt <- plt_df %>%
+    ggplot(aes(y = level, x = est, color = model)) +
+    # stat_summary(fun = mean_se, geom = "pointrange", show.legend = FALSE)
+
+    geom_pointrange(
+      aes(xmin = est - sd_est, xmax = est + sd_est),
+      show.legend = FALSE,
+      size=.25
+    ) 
+  
+  if (use_ref) {
+    plt <- plt + 
+      geom_point(
+        data = plt_df %>% filter(is.na(term)),
+        color = "black",
+        size = 2.75,
+        shape = 15)
+  }
+  
+  plt <- plt + 
+    geom_vline(aes(xintercept = dashline), linetype = "dashed") +
+    ggh4x::facet_nested(
+      feature ~ model, 
+      scales = "free_y", 
+      space = "free_y",
+      switch = "y",
+      drop = TRUE) +
+    theme_bw() +
+    theme(
+      strip.placement = "outside",
+      strip.text.y.left = element_text(angle = 0)) +
+    scale_color_manual(values = fill_values) +
+    labs(
+      y = "", 
+      x = "Average Feature Importance",
+      color = ""
+    ) 
+    # xlim(c(-1, 3))
+    # scale_x_continuous(breaks=scales::pretty_breaks())
+  
+  plt
+  
+}
+metrics$coefs %>%
+  group_by(model, term, feature, level) %>%
+  summarize(est = mean(mean_est), sd_est = sd(mean_est)) %>%
+  ungroup() %>%
+  feature_imp()
+ggsave("./reports/figures/review/data_split_coefficients.png", dpi = 'retina', width = 8, height=7)
+```
+
+
+```{r}
+
+```

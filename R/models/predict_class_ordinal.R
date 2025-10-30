@@ -412,31 +412,43 @@ enet_pipeline <- function(train, test) {
   )
 }
 
-fit_procedure <- function(train_splits, test_splits) {
+fit_procedure <- function(
+  train_splits,
+  test_splits,
+  include_nonrtfit = TRUE,
+  include_comparison_fits = TRUE
+) {
   c1_fit <- enet_pipeline(train_splits$class1, test_splits$class1)
   c2_fit <- enet_pipeline(train_splits$class2, test_splits$class2)
   c3_fit <- enet_pipeline(train_splits$class3, test_splits$class3)
-  
-  c12_fit <- enet_pipeline(train_splits$class12, test_splits$class12)
-  c13_fit <- enet_pipeline(train_splits$class13, test_splits$class13)
-  c23_fit <- enet_pipeline(train_splits$class23, test_splits$class23)
 
-  if ('site' %in% names(train_splits$nonrt)) {
-    nonrt_fit <- NULL
-  } else {
-    nonrt_fit <- enet_pipeline(train_splits$nonrt, test_splits$nonrt)
-  }
-  
-  list(
+  res <- list(
     "c1_fit" = c1_fit,
     "c2_fit" = c2_fit,
-    "c3_fit" = c3_fit,
-    "c12_fit" = c12_fit,
-    "c13_fit" = c13_fit,
-    "c23_fit" = c23_fit,
-    "nonrt_fit" = nonrt_fit
+    "c3_fit" = c3_fit
   )
-  
+
+  if (include_comparison_fits) {
+    c12_fit <- enet_pipeline(train_splits$class12, test_splits$class12)
+    c13_fit <- enet_pipeline(train_splits$class13, test_splits$class13)
+    c23_fit <- enet_pipeline(train_splits$class23, test_splits$class23)
+
+    res <- c(
+      res,
+      list(
+        "c12_fit" = c12_fit,
+        "c13_fit" = c13_fit,
+        "c23_fit" = c23_fit
+      )
+    )
+  }
+
+  if (include_nonrtfit) {
+    nonrt_fit <- enet_pipeline(train_splits$nonrt, test_splits$nonrt)
+    res <- c(res, list("nonrt_fit" = nonrt_fit))
+  }
+
+  res
 }
 
 

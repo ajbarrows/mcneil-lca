@@ -271,8 +271,9 @@ select_vars <- function(df_vector_sub, n, sid_df, site_name) {
                        EMOWELL)
   sminchk <-
     vec$sminchk %>% select(subject_id, VISIT, SMKQTY, SMKQTYW, SMKQTYM, SMKSTP)
+  ### !!!!
   smkhist <-
-    vec$smkhist %>% select(subject_id, VISIT, SMKNON, SMKAGE, SMKQT, SMKQTLA, CIGCQTY)
+    vec$smkhist %>% select(subject_id, VISIT, SMKNON, SMKAGE, SMKQT, SMKQTN, SMKQTLA, CIGCQTY)
   intquit <-
     vec$intquit %>% select(subject_id, VISIT, STOPSMK, QTNX6MO, INTMOT)
   
@@ -369,6 +370,7 @@ rename_recode <- function(df) {
     "SMKQTYM" = "cpm",
     "SMKSTP" = "quit",
     "SMKQT" = "n_quit_attempts",
+    'SMKQTN' = 'n_quit_attempts_numeric',
     "SMKNON" = "longest_period_wo_smoking",
     "SMKAGE" = "age_started_smoking",
     "SMKQTLA" = "ts_last_quit_attempt",

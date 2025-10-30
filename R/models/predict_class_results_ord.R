@@ -110,22 +110,22 @@ gather_cv_coef <- function(imputed_fits, site = NULL, use_ref = TRUE,
   
   
   term_feature <- read.csv(
-    "../data/term_feature_map.csv",
+    "./data/term_feature_map.csv",
     stringsAsFactors = FALSE
   )
   
   level_order <- read.csv(
-    "../data/level_ordering.csv",
+    "./data/level_ordering.csv",
     stringsAsFactors = FALSE
   )
   
   reference <- read.csv(
-    "../data/reference_term_map.csv",
+    "./data/reference_term_map.csv",
     stringsAsFactors = FALSE
   )
   
   dummy_lca <- read.csv(
-    "../data/dummy_lca.csv",
+    "./data/dummy_lca.csv",
     stringsAsFactors = FALSE
   )
   

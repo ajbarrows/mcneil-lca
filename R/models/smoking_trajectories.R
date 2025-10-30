@@ -109,7 +109,7 @@ merge_class <- function(model, df_lca) {
 
 # CPD distributions at each time point
 tpt <- time_point_normality(traj)
-ggsave(plot = tpt, file = "../reports/figures/lca/cpd_distributions.png", width = 7, height = 5)
+ggsave(plot = tpt, file = "../reports/figures/lca/cpd_distributions.png", width = 7, height = 5, dpi=600)
 
 # find smoking trajectories
 cpd_lca <- fit_model(traj)
@@ -118,7 +118,7 @@ save(cpd_lca, file = "../models/lca_models.RData")
 # goodness of fit
 bic_df <- goodness_of_fit_df(cpd_lca)
 bic <- plot_bic(bic_df)
-ggsave(plot = bic, file = "../reports/figures/lca/lmm_bic.png", width = 7, height = 5)
+ggsave(plot = bic, file = "../reports/figures/lca/lmm_bic.png", width = 7, height = 5, dpi=600)
 
 
 fit_table <- data.frame()  
@@ -141,11 +141,11 @@ for (m in cpd_lca) {
     # generate trajectory plots
     plot_traj <- plot_trajectories(df_lca, model_traj, n_classes = m$ng)
     # ggsave(plot = plot_traj$plot, file = paste0("../reports/figures/lca/", nme, ".png"), width = 7, height = 5, dpi='retina')
-    ggsave(plot = plot_traj$plot, file = paste0("../reports/figures/lca/", nme, ".png"), width = 7, height = 6, dpi='retina')
+    ggsave(plot = plot_traj$plot, file = paste0("../reports/figures/lca/", nme, ".pdf"), width = 7, height = 6)
     
     # generate cpd plot
     plot_cpd_traj <- plot_cpd_trajectories(df_lca, model_traj, n_classes = m$ng)
-    ggsave(plot = plot_cpd_traj, file = paste0("../reports/figures/lca/cpd/", nme, ".png"), width = 7, height = 5)
+    ggsave(plot = plot_cpd_traj, file = paste0("../reports/figures/lca/cpd/", nme, ".png"), width = 7, height = 5, dpi=600)
     
 }
 
